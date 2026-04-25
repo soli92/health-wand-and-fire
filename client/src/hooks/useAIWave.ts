@@ -1,42 +1,37 @@
 /**
- * useAIWave — React hook that POSTs end-of-wave stats to the backend
- * and returns the AI-generated WaveConfig for the next wave.
+ * useAIWave — React hook to fetch the next wave config from the AI backend.
+ * POST /api/next-wave → WaveConfig
  */
 
 import { useState, useCallback } from 'react'
+import { NextWaveResponseSchema } from '../../../shared/types'
 import type { PlayerStats, WaveConfig } from '../../../shared/types'
 
-interface UseAIWaveState {
-  waveConfig: WaveConfig | null
-  isLoading: boolean
+export interface UseAIWaveResult {
+  loading: boolean
   error: string | null
-  lastComment: string | null
-}
-
-interface UseAIWaveReturn extends UseAIWaveState {
+  lastConfig: WaveConfig | null
   fetchNextWave: (stats: PlayerStats) => Promise<WaveConfig | null>
-  reset: () => void
 }
 
-const FALLBACK_WAVE: WaveConfig = {
+/** Fallback config used when the API call fails */
+const FALLBACK_CONFIG: WaveConfig = {
   enemyCount: 8,
   speed: 1.5,
   shootFrequency: 1.0,
   pattern: 'random',
   powerUpSpawn: false,
-  comment: 'The mist thickens… the wizard stands firm.',
+  comment: 'The arcane connection falters… but the darkness presses on.',
 }
 
-export function useAIWave(): UseAIWaveReturn {
-  const [state, setState] = useState<UseAIWaveState>({
-    waveConfig: null,
-    isLoading: false,
-    error: null,
-    lastComment: null,
-  })
+export function useAIWave(): UseAIWaveResult {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [lastConfig, setLastConfig] = useState<WaveConfig | null>(null)
 
   const fetchNextWave = useCallback(async (stats: PlayerStats): Promise<WaveConfig | null> => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }))
+    setLoading(true)
+    setError(null)
 
     try {
       const res = await fetch('/api/next-wave', {
@@ -46,39 +41,31 @@ export function useAIWave(): UseAIWaveReturn {
       })
 
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}))
-        throw new Error(errBody?.error ?? `HTTP ${res.status}`)
+        const text = await res.text()
+        throw new Error(`Server error ${res.status}: ${text}`)
       }
 
-      const data = await res.json() as { wave: WaveConfig }
-      const config = data.wave
+      const json = await res.json()
+      const parsed = NextWaveResponseSchema.safeParse(json)
 
-      setState({
-        waveConfig: config,
-        isLoading: false,
-        error: null,
-        lastComment: config.comment,
-      })
+      if (!parsed.success) {
+        console.warn('[useAIWave] Invalid response schema — using fallback', parsed.error)
+        setLastConfig(FALLBACK_CONFIG)
+        return FALLBACK_CONFIG
+      }
 
-      return config
+      setLastConfig(parsed.data.wave)
+      return parsed.data.wave
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      console.warn('[useAIWave] Error fetching wave config — using fallback:', message)
-
-      setState({
-        waveConfig: FALLBACK_WAVE,
-        isLoading: false,
-        error: message,
-        lastComment: FALLBACK_WAVE.comment,
-      })
-
-      return FALLBACK_WAVE
+      const msg = err instanceof Error ? err.message : 'Unknown error'
+      console.error('[useAIWave] Fetch failed:', msg)
+      setError(msg)
+      setLastConfig(FALLBACK_CONFIG)
+      return FALLBACK_CONFIG
+    } finally {
+      setLoading(false)
     }
   }, [])
 
-  const reset = useCallback(() => {
-    setState({ waveConfig: null, isLoading: false, error: null, lastComment: null })
-  }, [])
-
-  return { ...state, fetchNextWave, reset }
+  return { loading, error, lastConfig, fetchNextWave }
 }
