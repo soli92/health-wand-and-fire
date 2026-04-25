@@ -51,7 +51,6 @@ export default function GameScreen() {
         timeMs: snapshot.waveDurationMs,
         scoreGained: snapshot.scoreGained,
       }
-
       const config = await fetchNextWave(playerStats)
       if (config) {
         applyNextWave(config)
@@ -90,7 +89,7 @@ export default function GameScreen() {
     return () => clearInterval(id)
   }, [started, gameStateRef])
 
-  // ── Start game once canvas is mounted ─────────────────────────────────────
+  // ── Start game once canvas is mounted ────────────────────────────────────
 
   const handleStart = useCallback(() => {
     setStarted(true)
@@ -115,6 +114,7 @@ export default function GameScreen() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+
       {/* Game container */}
       <div
         className="relative bg-black rounded-xl overflow-hidden shadow-2xl shadow-primary/20 border border-border"
@@ -129,10 +129,8 @@ export default function GameScreen() {
           aria-label="Health, Wand and Fire game canvas"
         />
 
-        {/* HUD overlay (always on top) */}
-        {started && (
-          <HUD gameState={hudState} aiLoading={loading} />
-        )}
+        {/* HUD overlay */}
+        {started && <HUD gameState={hudState} aiLoading={loading} />}
 
         {/* Pause overlay */}
         {hudState.paused && (
@@ -146,7 +144,9 @@ export default function GameScreen() {
         {loading && !hudState.paused && (
           <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-20 pointer-events-none">
             <div className="text-4xl animate-spin">✨</div>
-            <p className="text-primary font-semibold">The AI director prepares the next Omen…</p>
+            <p className="text-primary font-semibold text-center px-6">
+              The AI Director prepares the next Omen Wave…
+            </p>
           </div>
         )}
 
@@ -160,25 +160,27 @@ export default function GameScreen() {
                 Use ← → to move · Space to cast spells · Survive every Omen Wave
               </p>
             </div>
+            <div className="text-xs text-muted-foreground space-y-1 text-center">
+              <p><kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">← →</kbd> Move &nbsp; <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">A D</kbd> Move</p>
+              <p><kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">Space</kbd> Cast Spell &nbsp; <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">P</kbd> Pause</p>
+            </div>
             <button
               onClick={handleStart}
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg px-10 py-4 rounded-xl transition-all shadow-lg shadow-primary/30 hover:scale-105 active:scale-95"
             >
-              ⚡ Begin
+              ⚡ Begin the Omen
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+            >
+              ← Back to Menu
             </button>
           </div>
         )}
       </div>
 
-      {/* Back link */}
-      <button
-        onClick={() => navigate('/')}
-        className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        ← Back to menu
-      </button>
-
-      {/* AI Debug Panel (DEV only) */}
+      {/* AI Debug Panel — DEV only, outside canvas container so it's always visible */}
       <AIDebugPanel config={lastConfig} loading={loading} error={error} />
     </div>
   )
