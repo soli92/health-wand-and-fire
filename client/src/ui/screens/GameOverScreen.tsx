@@ -1,104 +1,65 @@
 /**
- * GameOverScreen — displays final stats and options to retry or return to menu.
- * Reads score/wave/stats from location.state passed by GameScreen on navigate.
+ * GameOverScreen — shown when the wizard dies.
+ * Reads final score and wave from URL state passed by GameScreen.
  */
 
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import type { PlayerStats } from '@/game/StatsTracker'
 
 interface GameOverState {
   score: number
   wave: number
-  lastStats?: PlayerStats
-}
-
-function StatRow({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex items-center justify-between py-1 border-b border-primary/10 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold text-foreground tabular-nums">{value}</span>
-    </div>
-  )
 }
 
 export default function GameOverScreen() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
-  const state     = (location.state as GameOverState | null) ?? { score: 0, wave: 1 }
-  const { score, wave, lastStats } = state
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  const accuracy = lastStats
-    ? `${Math.round(lastStats.accuracy * 100)}%`
-    : '—'
+  const { score = 0, wave = 1 } = (location.state as GameOverState | null) ?? {}
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-8">
-      {/* Background glow */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-destructive/10 blur-3xl" />
+    <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-4 text-center">
+      {/* Title */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-destructive/70">
+          The darkness prevails…
+        </p>
+        <h1 className="text-5xl font-extrabold tracking-tight text-destructive drop-shadow-[0_0_16px_var(--color-destructive)]">
+          Game Over
+        </h1>
       </div>
 
-      <div className="relative z-10 w-full max-w-md space-y-4">
-        {/* Main card */}
-        <Card className="border-destructive/40 bg-background/80 backdrop-blur-sm shadow-2xl shadow-destructive/10">
-          <CardHeader className="text-center pb-2">
-            <div className="text-5xl mb-3" aria-hidden="true">💀</div>
-            <CardTitle className="text-3xl font-bold text-primary">
-              The Darkness Prevails
-            </CardTitle>
-            <CardDescription className="italic text-muted-foreground mt-1">
-              Your flame has been extinguished by the eternal void.
-            </CardDescription>
-          </CardHeader>
+      {/* Skull glyph */}
+      <div className="text-6xl select-none" aria-hidden>💀</div>
 
-          <CardContent className="space-y-4">
-            {/* Score highlight */}
-            <div className="text-center py-3 rounded-lg bg-accent/40 border border-primary/20">
-              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Final Score</p>
-              <p className="text-4xl font-extrabold text-primary tabular-nums tracking-tight">
-                {score.toString().padStart(6, '0')}
-              </p>
-              <Badge variant="outline" className="mt-2 border-primary/40 text-muted-foreground">
-                Wave {wave} reached
-              </Badge>
-            </div>
+      {/* Stats card */}
+      <div className="rounded-xl border border-border bg-card px-8 py-6 text-card-foreground shadow-lg">
+        <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">Your legend</p>
+        <div className="mt-3 flex gap-10">
+          <div>
+            <p className="text-3xl font-extrabold text-primary tabular-nums">{score.toString().padStart(6, '0')}</p>
+            <p className="text-xs text-muted-foreground">Arcane Points</p>
+          </div>
+          <div>
+            <p className="text-3xl font-extrabold text-foreground tabular-nums">{wave}</p>
+            <p className="text-xs text-muted-foreground">Omen Waves survived</p>
+          </div>
+        </div>
+      </div>
 
-            {/* Stats breakdown */}
-            {lastStats && (
-              <div className="rounded-lg bg-background/50 border border-primary/10 px-4 py-2 space-y-0.5">
-                <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">Last Wave Stats</p>
-                <StatRow label="Shots fired"  value={lastStats.shotsFired} />
-                <StatRow label="Enemies hit"  value={lastStats.hits} />
-                <StatRow label="Accuracy"     value={accuracy} />
-                <StatRow label="Score gained" value={lastStats.scoreGained} />
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="space-y-2 pt-2">
-              <Button
-                className="w-full font-semibold"
-                onClick={() => navigate('/game')}
-              >
-                🔮 Play Again
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full border-primary/30 text-muted-foreground hover:text-foreground"
-                onClick={() => navigate('/')}
-              >
-                🏰 Return to Sanctum
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-xs text-muted-foreground/40 italic">
-          "Even the brightest star must one day fall..."
-        </p>
+      {/* Actions */}
+      <div className="flex gap-4">
+        <button
+          onClick={() => navigate('/game')}
+          className="rounded-lg border border-primary bg-primary px-8 py-3 font-bold text-primary-foreground shadow-[0_0_16px_var(--color-primary)] transition-all hover:scale-105 active:scale-95"
+        >
+          Rise Again ✦
+        </button>
+        <button
+          onClick={() => navigate('/')}
+          className="rounded-lg border border-border bg-card px-8 py-3 font-semibold text-card-foreground transition-all hover:border-primary hover:text-primary active:scale-95"
+        >
+          Main Menu
+        </button>
       </div>
     </div>
   )
