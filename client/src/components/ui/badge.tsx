@@ -1,32 +1,32 @@
 /**
- * Badge — shadcn/ui registry component (local copy).
- * Variants: default, secondary, destructive, outline.
+ * Badge — shadcn/ui registry component.
+ * Styled with SoliDS semantic tokens.
  */
 
 import * as React from 'react'
 
-type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
-
-const variantClasses: Record<BadgeVariant, string> = {
-  default:     'border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80',
-  secondary:   'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
-  destructive: 'border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80',
-  outline:     'text-foreground',
-}
-
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: BadgeVariant
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline'
 }
 
-function Badge({ className = '', variant = 'default', ...props }: BadgeProps) {
-  const base = [
-    'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold',
-    'transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-    variantClasses[variant],
-    className,
-  ].join(' ')
-
-  return <div className={base} {...props} />
+const variantClasses: Record<NonNullable<BadgeProps['variant']>, string> = {
+  default:     'border-transparent bg-primary text-primary-foreground',
+  secondary:   'border-transparent bg-secondary text-secondary-foreground',
+  destructive: 'border-transparent bg-destructive text-destructive-foreground',
+  outline:     'text-foreground border-border',
 }
 
-export { Badge }
+export function Badge({ className = '', variant = 'default', ...props }: BadgeProps) {
+  return (
+    <div
+      className={[
+        'inline-flex items-center rounded-full border px-2.5 py-0.5',
+        'text-xs font-semibold transition-colors',
+        'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+        variantClasses[variant],
+        className,
+      ].join(' ')}
+      {...props}
+    />
+  )
+}
