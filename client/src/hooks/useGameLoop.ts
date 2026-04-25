@@ -1,332 +1,235 @@
 /**
- * useGameLoop — React hook that manages the full game lifecycle on a canvas ref.
- *
- * Responsibilities:
- * - Instantiates GameLoop, Wizard, WaveSystem, InputSystem, StatsTracker
- * - Drives the update → render cycle
- * - Detects wave completion → calls onWaveComplete with the stats snapshot
- * - Detects game over → calls onGameOver
- * - Exposes a mutable gameState ref for the HUD to read
+ * useGameLoop — React hook that wires the canvas game engine to React lifecycle.
+ * Manages: GameLoop, InputSystem, WaveSystem, StatsTracker, CollisionSystem.
+ * Game state lives in a mutable ref — NO React.setState in hot path.
  */
 
 import { useRef, useEffect, useCallback } from 'react'
 import { GameLoop } from '../game/GameLoop'
 import { Wizard } from '../game/entities/Player'
-import { DarkCreature } from '../game/entities/Enemy'
 import { Spell } from '../game/entities/Bullet'
 import { InputSystem } from '../game/systems/InputSystem'
 import { WaveSystem } from '../game/systems/WaveSystem'
-import { CollisionSystem } from '../game/systems/CollisionSystem'
 import { StatsTracker } from '../game/StatsTracker'
-import type { WaveConfig, PlayerStats, GameState } from '../../../shared/types'
+import { runCollisions } from '../game/systems/CollisionSystem'
+import type { WaveConfig, GameState } from '../../../shared/types'
 
-interface UseGameLoopOptions {
+export interface UseGameLoopOptions {
   canvasRef: React.RefObject<HTMLCanvasElement>
-  initialWaveConfig: WaveConfig
-  onWaveComplete: (stats: PlayerStats, waveNumber: number) => void
-  onGameOver: (finalScore: number, wave: number) => void
+  onGameStateChange: (state: GameState) => void
+  onWaveEnd: (stats: ReturnType<StatsTracker['snapshot']>) => void
+  onGameOver: (finalScore: number) => void
 }
 
-interface UseGameLoopReturn {
-  gameStateRef: React.MutableRefObject<GameState>
-  applyNextWave: (config: WaveConfig) => void
-  startGame: () => void
-  stopGame: () => void
-}
+const CANVAS_W = 480
+const CANVAS_H = 640
+const STARS_COUNT = 60
 
-// Health Potion power-up (simple rect)
-interface PowerUp {
-  x: number
-  y: number
-  width: number
-  height: number
-  vy: number
-  color: string
-}
+interface Star { x: number; y: number; r: number; speed: number }
 
 export function useGameLoop({
   canvasRef,
-  initialWaveConfig,
-  onWaveComplete,
+  onGameStateChange,
+  onWaveEnd,
   onGameOver,
-}: UseGameLoopOptions): UseGameLoopReturn {
-  // ─── Mutable game state (NOT React state) ─────────────────────────────────
+}: UseGameLoopOptions) {
+  const loopRef = useRef<GameLoop | null>(null)
+  const inputRef = useRef<InputSystem | null>(null)
+  const waveRef = useRef<WaveSystem | null>(null)
+  const statsRef = useRef<StatsTracker | null>(null)
+  const wizardRef = useRef<Wizard | null>(null)
+  const spellsRef = useRef<Spell[]>([])
+  const starsRef = useRef<Star[]>([])
   const gameStateRef = useRef<GameState>({
     running: false,
     paused: false,
     wave: 1,
     score: 0,
     lives: 3,
-    waveConfig: initialWaveConfig,
+    waveConfig: null,
   })
+  const waitingForAIRef = useRef(false)
 
-  // ─── Game object refs ──────────────────────────────────────────────────────
-  const loopRef       = useRef<GameLoop>(new GameLoop())
-  const inputRef      = useRef<InputSystem>(new InputSystem())
-  const statsRef      = useRef<StatsTracker>(new StatsTracker())
-  const waveSystemRef = useRef<WaveSystem | null>(null)
-  const wizardRef     = useRef<Wizard | null>(null)
-  const enemiesRef    = useRef<DarkCreature[]>([])
-  const bulletsRef    = useRef<Spell[]>([])
-  const powerUpsRef   = useRef<PowerUp[]>([])
-  const pendingWaveCfgRef = useRef<WaveConfig | null>(null)
-  const waveCompleteRef   = useRef(false)
-
-  // ─── Apply next wave config (called from GameScreen after AI responds) ─────
-  const applyNextWave = useCallback((config: WaveConfig) => {
-    pendingWaveCfgRef.current = config
+  /** Initialize stars background */
+  const initStars = useCallback(() => {
+    starsRef.current = Array.from({ length: STARS_COUNT }, () => ({
+      x: Math.random() * CANVAS_W,
+      y: Math.random() * CANVAS_H,
+      r: Math.random() * 1.5 + 0.5,
+      speed: Math.random() * 20 + 10,
+    }))
   }, [])
 
-  // ─── Spawn power-up (Health Potion) ───────────────────────────────────────
-  const spawnPowerUp = useCallback((x: number, y: number) => {
-    const style = getComputedStyle(document.body)
-    const color = style.getPropertyValue('--color-accent').trim() || '#22c55e'
-    powerUpsRef.current.push({ x, y, width: 18, height: 22, vy: 60, color })
+  /** Render starfield */
+  const renderStars = useCallback((ctx: CanvasRenderingContext2D, dt: number) => {
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'
+    for (const star of starsRef.current) {
+      star.y += (star.speed * dt) / 1000
+      if (star.y > CANVAS_H) star.y = 0
+      ctx.beginPath()
+      ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2)
+      ctx.fill()
+    }
   }, [])
 
-  // ─── Main update function ──────────────────────────────────────────────────
-  const update = useCallback((dt: number) => {
-    const gs = gameStateRef.current
-    if (!gs.running || gs.paused) return
-
-    const canvas = canvasRef.current
-    if (!canvas || !wizardRef.current) return
-
-    const wizard  = wizardRef.current
-    const input   = inputRef.current
-    const stats   = statsRef.current
-    const W       = canvas.width
-    const H       = canvas.height
-
-    // ── 1. Wizard update ─────────────────────────────────────────────────────
-    wizard.update(dt, input.getState())
-
-    // Auto-fire when Space held
-    if (input.getState().fire) {
-      const spell = wizard.shoot()
-      if (spell) {
-        bulletsRef.current.push(spell)
-        stats.recordShot()
-      }
-    }
-
-    // ── 2. Enemies update ────────────────────────────────────────────────────
-    const enemies = enemiesRef.current
-    for (const enemy of enemies) {
-      enemy.update(dt)
-      const shot = enemy.shoot()
-      if (shot) bulletsRef.current.push(shot)
-    }
-
-    // ── 3. Bullets update & out-of-bounds cleanup ─────────────────────────────
-    bulletsRef.current = bulletsRef.current.filter(b => {
-      b.update(dt)
-      return !b.isOutOfBounds(W, H)
-    })
-
-    // ── 4. Power-ups update ───────────────────────────────────────────────────
-    powerUpsRef.current = powerUpsRef.current.filter(p => {
-      p.y += (p.vy * dt) / 1000
-
-      // Check collision with wizard
-      if (CollisionSystem.aabb(p, wizard)) {
-        wizard.lives = Math.min(wizard.lives + 1, 5)
-        gs.lives = wizard.lives
-        return false
-      }
-      return !CollisionSystem.isOutOfBounds(p, W, H)
-    })
-
-    // ── 5. Collision: player bullets vs enemies ────────────────────────────────
-    const remainingBullets: Spell[] = []
-    for (const bullet of bulletsRef.current) {
-      if (!bullet.isPlayerBullet) {
-        remainingBullets.push(bullet)
-        continue
-      }
-      let hit = false
-      for (const enemy of enemies) {
-        if (enemy.isDead) continue
-        if (CollisionSystem.aabb(bullet, enemy)) {
-          const killed = enemy.hit(1)
-          stats.recordHit()
-          if (killed) {
-            gs.score += 100
-            stats.addScore(100)
-          }
-          hit = true
-          break
-        }
-      }
-      if (!hit) remainingBullets.push(bullet)
-    }
-    bulletsRef.current = remainingBullets
-
-    // ── 6. Collision: enemy bullets vs wizard ──────────────────────────────────
-    bulletsRef.current = bulletsRef.current.filter(bullet => {
-      if (bullet.isPlayerBullet) return true
-      if (CollisionSystem.aabb(bullet, wizard)) {
-        const lost = wizard.takeHit()
-        if (lost) {
-          gs.lives = wizard.lives
-          stats.recordLifeLost()
-        }
-        return false
-      }
-      return true
-    })
-
-    // ── 7. Enemy reaches bottom → hit wizard ──────────────────────────────────
-    for (const enemy of enemies) {
-      if (!enemy.isDead && enemy.y + enemy.height >= H - 20) {
-        const lost = wizard.takeHit()
-        if (lost) {
-          gs.lives = wizard.lives
-          stats.recordLifeLost()
-        }
-        enemy.hp = 0
-      }
-    }
-
-    // ── 8. Remove dead enemies ────────────────────────────────────────────────
-    enemiesRef.current = enemies.filter(e => !e.isDead)
-
-    // ── 9. Game over check ────────────────────────────────────────────────────
-    if (wizard.isDead) {
-      gs.running = false
-      loopRef.current.stop()
-      inputRef.current.stopListening()
-      onGameOver(gs.score, gs.wave)
-      return
-    }
-
-    // ── 10. Wave complete check ───────────────────────────────────────────────
-    if (enemiesRef.current.length === 0 && !waveCompleteRef.current) {
-      waveCompleteRef.current = true
-      const snapshot = stats.snapshot(gs.wave)
-
-      // Spawn power-up if the completed wave config says so
-      if (gs.waveConfig?.powerUpSpawn) {
-        spawnPowerUp(W / 2 - 9, 20)
-      }
-
-      onWaveComplete(snapshot, gs.wave)
-    }
-
-    // ── 11. Apply pending wave config when ready ───────────────────────────────
-    if (pendingWaveCfgRef.current && waveCompleteRef.current) {
-      const cfg = pendingWaveCfgRef.current
-      pendingWaveCfgRef.current = null
-      waveCompleteRef.current = false
-
-      gs.wave += 1
-      gs.waveConfig = cfg
-      gs.lives = wizardRef.current?.lives ?? gs.lives
-
-      statsRef.current.reset()
-      enemiesRef.current = waveSystemRef.current?.spawnWave(cfg) ?? []
-    }
-  }, [canvasRef, onWaveComplete, onGameOver, spawnPowerUp])
-
-  // ─── Render function ───────────────────────────────────────────────────────
-  const render = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const W = canvas.width
-    const H = canvas.height
-
-    // Background
-    const style = getComputedStyle(document.body)
-    const bg = style.getPropertyValue('--color-background').trim() || '#0d0d1a'
-    ctx.fillStyle = bg
-    ctx.fillRect(0, 0, W, H)
-
-    // Stars (static seed per frame)
-    ctx.fillStyle = 'rgba(255,255,255,0.15)'
-    for (let i = 0; i < 60; i++) {
-      const sx = ((i * 137.5) % W)
-      const sy = ((i * 73.1) % H)
-      const r = i % 3 === 0 ? 1.5 : 0.8
-      ctx.beginPath()
-      ctx.arc(sx, sy, r, 0, Math.PI * 2)
-      ctx.fill()
-    }
-
-    // Entities
-    const wizard = wizardRef.current
-    if (wizard) wizard.render(ctx)
-
-    for (const enemy of enemiesRef.current) enemy.render(ctx)
-    for (const bullet of bulletsRef.current) bullet.render(ctx)
-
-    // Power-ups (Health Potions)
-    for (const p of powerUpsRef.current) {
-      ctx.save()
-      ctx.shadowBlur = 12
-      ctx.shadowColor = p.color
-      ctx.fillStyle = p.color
-      ctx.beginPath()
-      ctx.roundRect(p.x, p.y, p.width, p.height, 4)
-      ctx.fill()
-      ctx.shadowBlur = 0
-      ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 12px serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('♥', p.x + p.width / 2, p.y + p.height - 4)
-      ctx.restore()
-    }
-  }, [canvasRef])
-
-  // ─── Start / stop ──────────────────────────────────────────────────────────
   const startGame = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const W = canvas.width
-    const H = canvas.height
+    // Init subsystems
+    const loop = new GameLoop()
+    const input = new InputSystem()
+    const wave = new WaveSystem({ canvasWidth: CANVAS_W, canvasHeight: CANVAS_H })
+    const stats = new StatsTracker()
+    const wizard = new Wizard({ canvasWidth: CANVAS_W, canvasHeight: CANVAS_H })
+
+    loopRef.current = loop
+    inputRef.current = input
+    waveRef.current = wave
+    statsRef.current = stats
+    wizardRef.current = wizard
+    spellsRef.current = []
 
     // Reset game state
-    const gs = gameStateRef.current
-    gs.running = true
-    gs.paused = false
-    gs.wave = 1
-    gs.score = 0
-    gs.lives = 3
-    gs.waveConfig = initialWaveConfig
+    gameStateRef.current = {
+      running: true,
+      paused: false,
+      wave: 1,
+      score: 0,
+      lives: wizard.lives,
+      waveConfig: null,
+    }
+    waitingForAIRef.current = false
 
-    // Init systems
-    waveSystemRef.current = new WaveSystem(W, H)
-    wizardRef.current = new Wizard({ canvasWidth: W, canvasHeight: H })
-    enemiesRef.current = waveSystemRef.current.spawnWave(initialWaveConfig)
-    bulletsRef.current = []
-    powerUpsRef.current = []
-    waveCompleteRef.current = false
-    statsRef.current.reset()
+    initStars()
+    input.startListening()
+    wave.startDefaultWave()
 
-    inputRef.current.startListening()
+    // ── Update ──────────────────────────────────────────────────────────────
+    loop.setUpdateCallback((dt) => {
+      const gs = gameStateRef.current
+      if (!gs.running || gs.paused || waitingForAIRef.current) return
 
-    const loop = loopRef.current
-    loop.setUpdateCallback(update)
-    loop.setRenderCallback(render)
+      const inputState = input.getState()
+
+      // Player update
+      wizard.update(dt, inputState)
+
+      // Auto-fire on FIRE held
+      if (inputState.fire) {
+        const spell = wizard.shoot()
+        if (spell) {
+          spellsRef.current.push(spell)
+          stats.recordShot()
+        }
+      }
+
+      // Wave / enemy update
+      const newSpells = wave.update(dt)
+      spellsRef.current.push(...newSpells)
+
+      // Spell update + out-of-bounds prune
+      spellsRef.current.forEach(s => s.update(dt))
+      spellsRef.current = spellsRef.current.filter(
+        s => !s.isOutOfBounds(CANVAS_W, CANVAS_H),
+      )
+
+      // Collision
+      const col = runCollisions(wizard, wave.enemies, spellsRef.current)
+
+      // Remove hit spells
+      spellsRef.current = spellsRef.current.filter((_, i) => !col.playerSpellHits.has(i) && !col.enemySpellHits.has(i))
+
+      // Stats
+      if (col.hitsRegistered > 0) {
+        for (let i = 0; i < col.hitsRegistered; i++) stats.recordHit()
+      }
+      if (col.playerWasHit) stats.recordLifeLost()
+      if (col.scoreGained > 0) {
+        stats.addScore(col.scoreGained)
+        gs.score += col.scoreGained
+      }
+
+      // Prune dead enemies
+      wave.pruneEnemies()
+
+      // Health potion pickup
+      if (wave.checkPotionPickup(wizard)) {
+        if (wizard.lives < 3) wizard.lives++
+      }
+
+      // Sync lives
+      gs.lives = wizard.lives
+
+      // Game over check
+      if (wizard.isDead) {
+        gs.running = false
+        input.stopListening()
+        loop.stop()
+        onGameOver(gs.score)
+        return
+      }
+
+      // Wave clear check
+      if (wave.isWaveCleared && !waitingForAIRef.current) {
+        waitingForAIRef.current = true
+        const snapshot = stats.snapshot(gs.wave)
+        stats.reset()
+        onWaveEnd(snapshot)
+      }
+    })
+
+    // ── Render ──────────────────────────────────────────────────────────────
+    loop.setRenderCallback(() => {
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      // Background
+      const style = getComputedStyle(document.body)
+      const bg = style.getPropertyValue('--color-background').trim() || '#0a0a14'
+      ctx.fillStyle = bg
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+
+      renderStars(ctx, 16) // approx 60fps dt
+
+      // Entities
+      wave.render(ctx)
+      spellsRef.current.forEach(s => s.render(ctx))
+      wizard.render(ctx)
+    })
+
     loop.start()
-  }, [canvasRef, initialWaveConfig, update, render])
+    onGameStateChange({ ...gameStateRef.current })
+  }, [canvasRef, initStars, renderStars, onGameStateChange, onWaveEnd, onGameOver])
 
-  const stopGame = useCallback(() => {
-    loopRef.current.stop()
-    inputRef.current.stopListening()
-    gameStateRef.current.running = false
-  }, [])
+  /** Called by React (useAIWave) when AI returns next wave config */
+  const applyNextWave = useCallback((config: WaveConfig) => {
+    const gs = gameStateRef.current
+    gs.wave += 1
+    gs.waveConfig = config
+    waveRef.current?.applyConfig(config)
+    spellsRef.current = []
+    waitingForAIRef.current = false
+    onGameStateChange({ ...gs })
+  }, [onGameStateChange])
+
+  const pauseGame = useCallback(() => {
+    gameStateRef.current.paused = true
+    onGameStateChange({ ...gameStateRef.current })
+  }, [onGameStateChange])
+
+  const resumeGame = useCallback(() => {
+    gameStateRef.current.paused = false
+    onGameStateChange({ ...gameStateRef.current })
+  }, [onGameStateChange])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      loopRef.current.stop()
-      inputRef.current.stopListening()
+      loopRef.current?.stop()
+      inputRef.current?.stopListening()
     }
   }, [])
 
-  return { gameStateRef, applyNextWave, startGame, stopGame }
+  return { startGame, applyNextWave, pauseGame, resumeGame, gameStateRef }
 }
