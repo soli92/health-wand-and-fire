@@ -1,68 +1,51 @@
 /**
- * MenuScreen — landing page with game title and start button.
- * Uses shadcn/ui components from the local registry (@/components/ui).
+ * MenuScreen — landing screen.
+ * Uses @soli92/solids semantic Tailwind tokens.
  */
 
 import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 export default function MenuScreen() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-8">
-      {/* Ambient glow decoration */}
-      <div
-        className="absolute inset-0 pointer-events-none overflow-hidden"
-        aria-hidden="true"
-      >
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 rounded-full bg-accent/20 blur-2xl" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-md">
-        {/* Title card */}
-        <Card className="border-primary/40 bg-background/80 backdrop-blur-sm shadow-2xl shadow-primary/10 mb-6">
-          <CardHeader className="text-center pb-2">
-            {/* Wizard icon */}
-            <div className="text-6xl mb-3 drop-shadow-[0_0_20px_var(--color-primary)]" aria-hidden="true">
-              🧙
-            </div>
-            <CardTitle className="text-3xl sm:text-4xl font-bold text-primary tracking-tight leading-tight">
-              Health, Wand<br />and Fire
-            </CardTitle>
-            <CardDescription className="text-muted-foreground mt-2 italic text-base">
-              An AI-forged gauntlet of endless dark waves
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Each wave is conjured by an ancient oracle.<br />
-              Prove your arcane might — or be consumed.
-            </p>
-
-            {/* Controls reminder */}
-            <div className="rounded-md bg-accent/50 border border-primary/20 p-3 text-xs text-muted-foreground space-y-1">
-              <p><kbd className="bg-background/60 border border-primary/30 rounded px-1 py-0.5">← →</kbd> Move</p>
-              <p><kbd className="bg-background/60 border border-primary/30 rounded px-1 py-0.5">Space</kbd> Cast spell</p>
-            </div>
-
-            <Button
-              size="lg"
-              className="w-full text-base font-semibold tracking-wide mt-2"
-              onClick={() => navigate('/game')}
-            >
-              ⚔️ Begin the Omen
-            </Button>
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-xs text-muted-foreground/50">
-          Powered by AI wave generation
+    <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-4 text-center">
+      {/* Title */}
+      <div className="space-y-2">
+        <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          A wizard's last stand
+        </p>
+        <h1 className="text-5xl font-extrabold tracking-tight text-primary drop-shadow-[0_0_20px_var(--color-primary)] sm:text-6xl">
+          Health, Wand<br />& Fire
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          Powered by <span className="text-primary font-semibold">Claude AI</span> — each wave adapts to your play
         </p>
       </div>
+
+      {/* Decorative wizard glyph */}
+      <div className="text-7xl select-none" aria-hidden>🧙</div>
+
+      {/* Controls legend */}
+      <div className="rounded-lg border border-border bg-card px-6 py-4 text-left text-sm text-card-foreground">
+        <p className="mb-2 font-semibold text-foreground">Controls</p>
+        <ul className="space-y-1 text-muted-foreground">
+          <li><kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">← →</kbd> or <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">A D</kbd> — Move</li>
+          <li><kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">Space</kbd> or <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">Z</kbd> — Cast Spell</li>
+        </ul>
+      </div>
+
+      {/* CTA */}
+      <button
+        onClick={() => navigate('/game')}
+        className="rounded-lg border border-primary bg-primary px-10 py-4 text-lg font-bold text-primary-foreground shadow-[0_0_24px_var(--color-primary)] transition-all hover:scale-105 hover:shadow-[0_0_40px_var(--color-primary)] active:scale-95"
+      >
+        Begin the Omen ✦
+      </button>
+
+      <p className="text-xs text-muted-foreground/60">
+        Survive as many Omen Waves as you can. Good luck, wizard.
+      </p>
     </div>
   )
 }
