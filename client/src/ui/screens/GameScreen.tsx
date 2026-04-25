@@ -10,7 +10,7 @@ import { useGameLoop } from '../../hooks/useGameLoop'
 import { useAIWave } from '../../hooks/useAIWave'
 import HUD from '../hud/HUD'
 import AIDebugPanel from '../hud/AIDebugPanel'
-import type { GameState } from '../../../../../shared/types'
+import type { GameState } from '../../../../shared/types'
 import type { StatsTracker } from '../../game/StatsTracker'
 
 const CANVAS_W = 480
