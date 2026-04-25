@@ -1,160 +1,120 @@
 /**
- * GameScreen — main gameplay screen.
- * - Mounts a <canvas> for game rendering
- * - Overlays React HUD (updated via setInterval polling refs, not game loop state)
- * - Orchestrates useGameLoop + useAIWave
- * - On wave complete: snapshot stats → fetchNextWave → applyNextWave
- * - On game over: navigate to /gameover with final score
+ * GameScreen — the main game view.
+ *
+ * Layout:
+ *   - <canvas> fills the viewport (game renders here)
+ *   - HUD overlay (absolute positioned)
+ *   - AIDebugPanel overlay (DEV only)
+ *
+ * Orchestration:
+ *   useGameLoop  → drives the game (update + render)
+ *   useAIWave    → POSTs stats at wave end, receives next WaveConfig
+ *
+ * On wave complete:
+ *   1. useGameLoop.onWaveComplete fires → we call useAIWave.fetchNextWave(stats)
+ *   2. AI responds → we call useGameLoop.applyNextWave(config)
+ *   3. Game loop spawns next wave with new config
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGameLoop } from '@/hooks/useGameLoop'
-import { useAIWave } from '@/hooks/useAIWave'
-import HUD from '@/ui/hud/HUD'
-import AIDebugPanel from '@/ui/hud/AIDebugPanel'
-import type { WaveConfig } from '@/game/entities/Enemy'
+import { useGameLoop } from '../../hooks/useGameLoop'
+import { useAIWave } from '../../hooks/useAIWave'
+import HUD from '../hud/HUD'
+import AIDebugPanel from '../hud/AIDebugPanel'
+import type { PlayerStats, WaveConfig } from '../../../../../shared/types'
 
-// HUD polling interval (ms) — low enough to feel responsive, high enough to not thrash
-const HUD_POLL_INTERVAL = 120
+// Default wave for wave #1 (before AI takes over)
+const INITIAL_WAVE_CONFIG: WaveConfig = {
+  enemyCount: 6,
+  speed: 1.0,
+  shootFrequency: 0.4,
+  pattern: 'swarm',
+  powerUpSpawn: false,
+  comment: 'The first Omen arrives. Show them your power, wizard.',
+}
 
 export default function GameScreen() {
-  const navigate = useNavigate()
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const navigate   = useNavigate()
+  const canvasRef  = useRef<HTMLCanvasElement>(null)
+  const { waveConfig, isLoading, error, lastComment, fetchNextWave } = useAIWave()
 
-  // HUD display state — deliberately separate from game loop refs
-  const [hudLives, setHudLives] = useState(3)
-  const [hudScore, setHudScore] = useState(0)
-  const [hudWave,  setHudWave]  = useState(1)
-
-  // AI debug state
-  const [lastWaveConfig, setLastWaveConfig] = useState<WaveConfig | null>(null)
-
-  // Track if we're transitioning between waves to avoid double-triggering
-  const isTransitioningRef = useRef(false)
-
-  const { fetchNextWave, isLoading, error, lastComment } = useAIWave()
-
-  // ── Wave complete callback (called from game loop) ───────────────────────
-  const handleWaveComplete = useCallback((completedWave: number) => {
-    if (isTransitioningRef.current) return
-    isTransitioningRef.current = true
-
-    // snapshot is pulled inside applyNextWave via statsTracker ref
-    // We need a slight defer so the loop settles before we call fetchNextWave
-    setTimeout(async () => {
-      try {
-        const stats = statsTracker.snapshot(completedWave)
-        const config = await fetchNextWave(stats)
-        setLastWaveConfig(config)
-        applyNextWave(config)
-      } finally {
-        isTransitioningRef.current = false
+  // ─── Callbacks ─────────────────────────────────────────────────────────────
+  const handleWaveComplete = useCallback(
+    async (stats: PlayerStats, _waveNumber: number) => {
+      const nextConfig = await fetchNextWave(stats)
+      if (nextConfig) {
+        applyNextWave(nextConfig)
       }
-    }, 400) // brief pause between waves for UX breathing room
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchNextWave])
-
-  // ── Game over callback ────────────────────────────────────────────────────
-  const handleGameOver = useCallback(() => {
-    // Read final state from refs before navigating
-    setTimeout(() => {
-      navigate('/gameover', {
-        state: {
-          score: gameStateRef.current.score,
-          wave:  gameStateRef.current.wave,
-          lastStats: statsTracker.snapshot(gameStateRef.current.wave),
-        },
-      })
-    }, 300)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate])
-
-  const { gameStateRef, startGame, stopGame, applyNextWave, statsTracker } = useGameLoop(
-    canvasRef as React.RefObject<HTMLCanvasElement>,
-    handleWaveComplete,
-    handleGameOver,
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fetchNextWave],
   )
 
-  // ── HUD polling via setInterval ───────────────────────────────────────────
-  useEffect(() => {
-    const id = setInterval(() => {
-      const s = gameStateRef.current
-      setHudLives(s.lives)
-      setHudScore(s.score)
-      setHudWave(s.wave)
-    }, HUD_POLL_INTERVAL)
-    return () => clearInterval(id)
-  }, [gameStateRef])
+  const handleGameOver = useCallback(
+    (finalScore: number, wave: number) => {
+      navigate('/gameover', { state: { score: finalScore, wave } })
+    },
+    [navigate],
+  )
 
-  // ── Start game on mount ───────────────────────────────────────────────────
+  // ─── Game loop ─────────────────────────────────────────────────────────────
+  const { gameStateRef, applyNextWave, startGame, stopGame } = useGameLoop({
+    canvasRef,
+    initialWaveConfig: INITIAL_WAVE_CONFIG,
+    onWaveComplete: handleWaveComplete,
+    onGameOver: handleGameOver,
+  })
+
+  // ─── Canvas sizing ─────────────────────────────────────────────────────────
   useEffect(() => {
-    // Small delay to ensure canvas has layout dimensions
-    const t = setTimeout(() => startGame(), 50)
-    return () => {
-      clearTimeout(t)
-      stopGame()
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const resize = () => {
+      // Keep a fixed-ratio viewport (480×640) centred; canvas CSS fills container
+      canvas.width  = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    resize()
+    const obs = new ResizeObserver(resize)
+    obs.observe(canvas)
+    return () => obs.disconnect()
   }, [])
 
-  // ── Handle canvas resize ──────────────────────────────────────────────────
+  // ─── Start game on mount ───────────────────────────────────────────────────
   useEffect(() => {
-    const observer = new ResizeObserver(() => {
-      const canvas = canvasRef.current
-      if (canvas && gameStateRef.current.status === 'idle') {
-        canvas.width  = canvas.offsetWidth
-        canvas.height = canvas.offsetHeight
-      }
-    })
-    if (canvasRef.current) observer.observe(canvasRef.current)
-    return () => observer.disconnect()
-  }, [gameStateRef])
+    startGame()
+    return () => stopGame()
+  }, [startGame, stopGame])
 
   return (
-    <div
-      className="game-screen relative w-full h-screen overflow-hidden bg-background flex items-center justify-center"
-      aria-label="Game arena"
-    >
-      {/* Canvas — fills available space, constrained to a sensible aspect ratio */}
+    <div className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-background">
+      {/* Game canvas — fills screen */}
       <canvas
         ref={canvasRef}
-        className="w-full h-full max-w-lg object-contain"
-        style={{ touchAction: 'none' }}
-        aria-label="Game canvas"
-        tabIndex={0}
+        className="h-full w-full max-w-xl"
+        style={{ imageRendering: 'pixelated' }}
       />
 
-      {/* React HUD overlay */}
-      <HUD lives={hudLives} score={hudScore} wave={hudWave} />
+      {/* HUD overlay */}
+      <HUD gameStateRef={gameStateRef} aiComment={lastComment} />
 
-      {/* Wave transition overlay */}
-      {isTransitioningRef.current && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center space-y-2">
-            <p className="text-2xl font-bold text-primary animate-pulse drop-shadow-[0_0_12px_var(--color-primary)]">
-              ✨ Wave Complete ✨
-            </p>
-            {isLoading && (
-              <p className="text-sm text-muted-foreground animate-pulse">
-                The oracle weaves the next trial…
-              </p>
-            )}
-            {error && (
-              <p className="text-xs text-destructive/70">
-                Oracle is silent — conjuring from memory
-              </p>
-            )}
+      {/* AI Debug Panel — DEV only */}
+      <AIDebugPanel
+        waveConfig={waveConfig}
+        isLoading={isLoading}
+        error={error}
+      />
+
+      {/* AI loading indicator (mid-game wave transition) */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="rounded-xl border border-primary/40 bg-background/80 px-6 py-3 text-sm font-semibold text-primary backdrop-blur-sm animate-pulse">
+            ✨ The oracle decides your fate…
           </div>
         </div>
       )}
-
-      {/* AI Debug Panel (DEV only) */}
-      <AIDebugPanel
-        lastWaveConfig={lastWaveConfig}
-        isLoading={isLoading}
-        lastComment={lastComment}
-      />
     </div>
   )
 }
