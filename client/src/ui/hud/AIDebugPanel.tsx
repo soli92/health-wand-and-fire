@@ -3,7 +3,7 @@
  * Shows the last WaveConfig JSON returned by Claude + loading state + error.
  */
 
-import type { WaveConfig } from '../../../../../shared/types'
+import type { WaveConfig } from '../../../../shared/types'
 
 interface AIDebugPanelProps {
   waveConfig: WaveConfig | null
