@@ -7,8 +7,8 @@ import { DarkCreature, type DarkCreatureOptions } from '../entities/Enemy'
 import type { WaveConfig } from '../../../../shared/types'
 
 // Map the shared WaveConfig pattern enum to the DarkCreature's internal patterns.
-// The shared schema uses: 'swarm' | 'pincer' | 'wall' | 'random' | 'flanking'
-// The entity uses:        'linear' | 'zigzag' | 'dive' | 'hover'
+// Shared: 'swarm' | 'pincer' | 'wall' | 'random' | 'flanking'
+// Entity: 'linear' | 'zigzag' | 'dive' | 'hover'
 function mapPattern(
   shared: WaveConfig['pattern'],
   index: number,
@@ -18,7 +18,6 @@ function mapPattern(
     case 'swarm':
       return 'zigzag'
     case 'pincer':
-      // Alternate: left half → left approaching, right half → right approaching (zigzag)
       return index < total / 2 ? 'linear' : 'zigzag'
     case 'wall':
       return 'linear'
@@ -43,13 +42,15 @@ export class WaveSystem {
 
   /**
    * Spawns a full wave of DarkCreatures based on the WaveConfig from AI.
+   * `speed` in WaveConfig is a multiplier (0.5–3.0) → px/sec = speed * 60
    */
   spawnWave(config: WaveConfig): DarkCreature[] {
     const count = config.enemyCount
-    const cols = Math.min(count, 8)
-    const rows = Math.ceil(count / cols)
+    const cols  = Math.min(count, 8)
 
-    const startX = (this.canvasWidth - cols * 48) / 2
+    const cellW  = 48
+    const cellH  = 52
+    const startX = Math.max(0, (this.canvasWidth - cols * cellW) / 2)
     const startY = 40
 
     const creatures: DarkCreature[] = []
@@ -58,18 +59,13 @@ export class WaveSystem {
       const col = i % cols
       const row = Math.floor(i / cols)
 
-      const x = startX + col * 48
-      const y = startY + row * 52
-
-      const pattern = mapPattern(config.pattern, i, count)
-
       creatures.push(
         new DarkCreature({
-          x,
-          y,
-          pattern,
-          speed: config.speed * 60,         // speed in shared schema is a multiplier 0.5–3
-          hp: row === 0 ? 2 : 1,             // front row slightly harder
+          x: startX + col * cellW,
+          y: startY + row * cellH,
+          pattern: mapPattern(config.pattern, i, count),
+          speed: config.speed * 60,          // multiplier → px/sec
+          hp: row === 0 ? 2 : 1,
           shootFrequency: config.shootFrequency,
           canvasWidth: this.canvasWidth,
         }),
@@ -80,15 +76,14 @@ export class WaveSystem {
   }
 
   /**
-   * Returns true when all creatures in the current wave have been defeated.
+   * Returns true when all creatures in the wave are dead or removed.
    */
   isWaveComplete(creatures: DarkCreature[]): boolean {
     return creatures.length === 0 || creatures.every(c => c.isDead)
   }
 
-  /** Called when the canvas is resized */
   resize(w: number, h: number): void {
-    this.canvasWidth = w
+    this.canvasWidth  = w
     this.canvasHeight = h
   }
 }
