@@ -3,7 +3,7 @@
  * Rendered ONLY when import.meta.env.DEV === true.
  */
 
-import type { WaveConfig } from '../../../../../shared/types'
+import type { WaveConfig } from '../../../../shared/types'
 
 interface AIDebugPanelProps {
   config: WaveConfig | null
