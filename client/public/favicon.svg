@@ -1,14 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <rect width="32" height="32" rx="6" fill="#0d0d1a"/>
-  <!-- Wizard hat -->
-  <polygon points="16,3 22,16 10,16" fill="#a855f7"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Background -->
+  <rect width="64" height="64" rx="12" fill="#1a0a2e"/>
+  <!-- Robe -->
+  <polygon points="12,60 20,28 32,20 44,28 52,60" fill="#7c3aed"/>
   <!-- Hat brim -->
-  <rect x="8" y="15" width="16" height="3" rx="1.5" fill="#7c3aed"/>
-  <!-- Body -->
-  <rect x="11" y="18" width="10" height="10" rx="2" fill="#7c3aed"/>
+  <ellipse cx="32" cy="24" rx="16" ry="4" fill="#6d28d9"/>
+  <!-- Hat cone -->
+  <polygon points="18,24 32,4 46,24" fill="#7c3aed"/>
+  <!-- Star on hat -->
+  <text x="28" y="20" font-size="8" fill="#fbbf24">✦</text>
   <!-- Eyes -->
-  <circle cx="13.5" cy="21" r="1.5" fill="white"/>
-  <circle cx="18.5" cy="21" r="1.5" fill="white"/>
-  <!-- Spell spark -->
-  <circle cx="24" cy="10" r="2" fill="#f59e0b" opacity="0.9"/>
+  <rect x="25" y="30" width="5" height="5" rx="1" fill="#fff"/>
+  <rect x="34" y="30" width="5" height="5" rx="1" fill="#fff"/>
+  <!-- Glow -->
+  <circle cx="32" cy="40" r="6" fill="#a78bfa" opacity="0.3"/>
 </svg>
