@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Game canvas pixel-perfect rendering */
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Prevent text selection during gameplay */
+.game-screen {
+  user-select: none;
+  -webkit-user-select: none;
+}
