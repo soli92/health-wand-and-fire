@@ -4,7 +4,7 @@
  * Uses SoliDS semantic tokens only.
  */
 
-import type { GameState } from '../../../../../shared/types'
+import type { GameState } from '../../../../shared/types'
 
 interface HUDProps {
   gameState: GameState
