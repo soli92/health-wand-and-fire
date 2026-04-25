@@ -1,54 +1,39 @@
 /**
- * AIDebugPanel — development-only overlay showing AI wave debug info.
- * Rendered only when import.meta.env.DEV === true.
+ * AIDebugPanel — visible only in DEV mode (import.meta.env.DEV).
+ * Shows the last WaveConfig JSON returned by Claude + loading state + error.
  */
 
-import type { WaveConfig } from '@/game/entities/Enemy'
+import type { WaveConfig } from '../../../../../shared/types'
 
 interface AIDebugPanelProps {
-  lastWaveConfig: WaveConfig | null
+  waveConfig: WaveConfig | null
   isLoading: boolean
-  lastComment: string | null
+  error: string | null
 }
 
-export default function AIDebugPanel({ lastWaveConfig, isLoading, lastComment }: AIDebugPanelProps) {
-  // Strip in production builds — tree-shaken by Vite
+export default function AIDebugPanel({ waveConfig, isLoading, error }: AIDebugPanelProps) {
   if (!import.meta.env.DEV) return null
 
   return (
-    <div
-      className={[
-        'fixed bottom-4 right-4 z-50',
-        'max-w-xs w-full rounded-lg p-3',
-        'bg-accent/80 backdrop-blur-sm',
-        'border border-primary',
-        'text-muted-foreground text-xs',
-        'shadow-lg shadow-primary/20',
-      ].join(' ')}
-      role="complementary"
-      aria-label="AI Debug Panel"
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-bold text-primary tracking-wide uppercase text-[10px]">
-          🔮 AI Debug
-        </span>
-        {isLoading && (
-          <span className="text-[10px] animate-pulse text-primary">fetching…</span>
-        )}
-      </div>
+    <div className="pointer-events-none absolute bottom-2 right-2 z-20 w-64 rounded-lg border border-primary/30 bg-background/90 p-3 font-mono text-xs backdrop-blur-sm">
+      <p className="mb-1 font-bold text-primary">🤖 AI Director</p>
 
-      {lastComment && (
-        <p className="italic mb-2 text-foreground/70 border-b border-primary/30 pb-2 leading-snug">
-          &ldquo;{lastComment}&rdquo;
-        </p>
+      {isLoading && (
+        <p className="animate-pulse text-muted-foreground">Consulting the oracle…</p>
       )}
 
-      {lastWaveConfig ? (
-        <pre className="whitespace-pre-wrap break-all leading-relaxed">
-          {JSON.stringify(lastWaveConfig, null, 2)}
+      {error && (
+        <p className="text-destructive">⚠ {error}</p>
+      )}
+
+      {waveConfig && !isLoading && (
+        <pre className="overflow-auto text-muted-foreground whitespace-pre-wrap break-all">
+          {JSON.stringify(waveConfig, null, 2)}
         </pre>
-      ) : (
-        <p className="opacity-50">No wave config yet</p>
+      )}
+
+      {!waveConfig && !isLoading && !error && (
+        <p className="text-muted-foreground italic">Awaiting first wave…</p>
       )}
     </div>
   )
