@@ -1,17 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- Background -->
-  <rect width="64" height="64" rx="12" fill="#1a0a2e"/>
-  <!-- Robe -->
-  <polygon points="12,60 20,28 32,20 44,28 52,60" fill="#7c3aed"/>
-  <!-- Hat brim -->
-  <ellipse cx="32" cy="24" rx="16" ry="4" fill="#6d28d9"/>
-  <!-- Hat cone -->
-  <polygon points="18,24 32,4 46,24" fill="#7c3aed"/>
-  <!-- Star on hat -->
-  <text x="28" y="20" font-size="8" fill="#fbbf24">✦</text>
-  <!-- Eyes -->
-  <rect x="25" y="30" width="5" height="5" rx="1" fill="#fff"/>
-  <rect x="34" y="30" width="5" height="5" rx="1" fill="#fff"/>
-  <!-- Glow -->
-  <circle cx="32" cy="40" r="6" fill="#a78bfa" opacity="0.3"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background circle -->
+  <circle cx="16" cy="16" r="16" fill="#0a0a14"/>
+  <!-- Wizard hat brim -->
+  <ellipse cx="16" cy="22" rx="11" ry="3" fill="#a855f7"/>
+  <!-- Wizard hat cone -->
+  <polygon points="16,4 8,22 24,22" fill="#a855f7"/>
+  <!-- Star accent -->
+  <circle cx="19" cy="13" r="1.5" fill="#fbbf24"/>
+  <!-- Glow effect -->
+  <circle cx="16" cy="16" r="15" fill="none" stroke="#a855f7" stroke-width="0.5" opacity="0.4"/>
 </svg>
