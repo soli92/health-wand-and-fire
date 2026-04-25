@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import type { GameState } from '../../../../../shared/types'
+import type { GameState } from '../../../../shared/types'
 
 interface HUDProps {
   gameStateRef: React.MutableRefObject<GameState>
@@ -21,7 +21,7 @@ export default function HUD({ gameStateRef, aiComment }: HUDProps) {
   const [showComment, setShowComment] = useState(false)
   const [currentComment, setCurrentComment] = useState<string | null>(null)
 
-  // Poll game state every 100ms (not every frame — avoids React reconciliation cost)
+  // Poll game state every 100ms
   useEffect(() => {
     const id = setInterval(() => {
       const gs = gameStateRef.current
@@ -66,8 +66,8 @@ export default function HUD({ gameStateRef, aiComment }: HUDProps) {
       {/* AI comment banner */}
       {showComment && currentComment && (
         <div
-          className="mx-auto mt-1 rounded border border-primary/40 bg-background/80 px-3 py-1 text-center text-xs italic text-primary backdrop-blur-sm transition-opacity duration-700"
-          style={{ opacity: showComment ? 1 : 0 }}
+          className="mx-auto mt-1 rounded border border-primary/40 bg-background/80 px-3 py-1 text-center text-xs italic text-primary backdrop-blur-sm"
+          style={{ opacity: showComment ? 1 : 0, transition: 'opacity 0.7s' }}
         >
           "{currentComment}"
         </div>
