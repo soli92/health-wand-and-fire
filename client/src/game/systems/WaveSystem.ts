@@ -1,79 +1,94 @@
 /**
- * WaveSystem — spawns and manages enemy waves from AI-generated configs.
+ * WaveSystem — converts a WaveConfig (from AI) into a set of DarkCreature instances
+ * and manages the wave lifecycle (active → complete).
  */
 
-import { DarkCreature, type Enemy, type WaveConfig } from '../entities/Enemy'
+import { DarkCreature, type DarkCreatureOptions } from '../entities/Enemy'
+import type { WaveConfig } from '../../../../shared/types'
 
-export type { WaveConfig }
-
-const DEFAULT_CONFIG: WaveConfig = {
-  enemyCount: 8,
-  enemySpeed: 80,
-  enemyHp: 1,
-  pattern: 'linear',
-  shootFrequency: 0,
-  scorePerKill: 100,
-  comment: 'The shadows stir...',
+// Map the shared WaveConfig pattern enum to the DarkCreature's internal patterns.
+// The shared schema uses: 'swarm' | 'pincer' | 'wall' | 'random' | 'flanking'
+// The entity uses:        'linear' | 'zigzag' | 'dive' | 'hover'
+function mapPattern(
+  shared: WaveConfig['pattern'],
+  index: number,
+  total: number,
+): DarkCreatureOptions['pattern'] {
+  switch (shared) {
+    case 'swarm':
+      return 'zigzag'
+    case 'pincer':
+      // Alternate: left half → left approaching, right half → right approaching (zigzag)
+      return index < total / 2 ? 'linear' : 'zigzag'
+    case 'wall':
+      return 'linear'
+    case 'flanking':
+      return index % 2 === 0 ? 'dive' : 'hover'
+    case 'random':
+    default: {
+      const patterns: DarkCreatureOptions['pattern'][] = ['linear', 'zigzag', 'dive', 'hover']
+      return patterns[index % patterns.length]
+    }
+  }
 }
 
 export class WaveSystem {
-  private config: WaveConfig = { ...DEFAULT_CONFIG }
   private canvasWidth: number
   private canvasHeight: number
 
-  constructor(canvasWidth: number = 480, canvasHeight: number = 640) {
+  constructor(canvasWidth = 480, canvasHeight = 640) {
     this.canvasWidth = canvasWidth
     this.canvasHeight = canvasHeight
   }
 
-  /** Update the active wave configuration */
-  applyConfig(config: Partial<WaveConfig>): void {
-    this.config = { ...this.config, ...config }
-  }
+  /**
+   * Spawns a full wave of DarkCreatures based on the WaveConfig from AI.
+   */
+  spawnWave(config: WaveConfig): DarkCreature[] {
+    const count = config.enemyCount
+    const cols = Math.min(count, 8)
+    const rows = Math.ceil(count / cols)
 
-  /** Get current config (read-only copy) */
-  getConfig(): WaveConfig {
-    return { ...this.config }
+    const startX = (this.canvasWidth - cols * 48) / 2
+    const startY = 40
+
+    const creatures: DarkCreature[] = []
+
+    for (let i = 0; i < count; i++) {
+      const col = i % cols
+      const row = Math.floor(i / cols)
+
+      const x = startX + col * 48
+      const y = startY + row * 52
+
+      const pattern = mapPattern(config.pattern, i, count)
+
+      creatures.push(
+        new DarkCreature({
+          x,
+          y,
+          pattern,
+          speed: config.speed * 60,         // speed in shared schema is a multiplier 0.5–3
+          hp: row === 0 ? 2 : 1,             // front row slightly harder
+          shootFrequency: config.shootFrequency,
+          canvasWidth: this.canvasWidth,
+        }),
+      )
+    }
+
+    return creatures
   }
 
   /**
-   * Spawn a new wave of enemies arranged in a grid.
-   * Optionally merge in a fresh config before spawning.
+   * Returns true when all creatures in the current wave have been defeated.
    */
-  spawnWave(config?: Partial<WaveConfig>): Enemy[] {
-    if (config) this.applyConfig(config)
-
-    const { enemyCount, enemySpeed, enemyHp, pattern, shootFrequency } = this.config
-    const enemies: Enemy[] = []
-
-    const cols = Math.min(enemyCount, 8)
-    const rows = Math.ceil(enemyCount / cols)
-    const hGap = this.canvasWidth / (cols + 1)
-    const vGap = 52
-
-    let spawned = 0
-    outer: for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        if (spawned >= enemyCount) break outer
-
-        enemies.push(new DarkCreature({
-          x: hGap * (col + 1) - DarkCreature.prototype.width / 2,
-          y: 40 + row * vGap,
-          speed: enemySpeed,
-          hp: enemyHp,
-          pattern,
-          shootFrequency,
-          canvasWidth: this.canvasWidth,
-        }))
-        spawned++
-      }
-    }
-
-    return enemies
+  isWaveComplete(creatures: DarkCreature[]): boolean {
+    return creatures.length === 0 || creatures.every(c => c.isDead)
   }
 
-  /** Returns true when all enemies in the provided array are dead */
-  isWaveComplete(enemies: Enemy[]): boolean {
-    return enemies.length === 0
+  /** Called when the canvas is resized */
+  resize(w: number, h: number): void {
+    this.canvasWidth = w
+    this.canvasHeight = h
   }
 }
