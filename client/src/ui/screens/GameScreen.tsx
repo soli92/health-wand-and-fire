@@ -22,7 +22,7 @@ import { useGameLoop } from '../../hooks/useGameLoop'
 import { useAIWave } from '../../hooks/useAIWave'
 import HUD from '../hud/HUD'
 import AIDebugPanel from '../hud/AIDebugPanel'
-import type { PlayerStats, WaveConfig } from '../../../../../shared/types'
+import type { PlayerStats, WaveConfig } from '../../../../shared/types'
 
 // Default wave for wave #1 (before AI takes over)
 const INITIAL_WAVE_CONFIG: WaveConfig = {
@@ -72,7 +72,6 @@ export default function GameScreen() {
     if (!canvas) return
 
     const resize = () => {
-      // Keep a fixed-ratio viewport (480×640) centred; canvas CSS fills container
       canvas.width  = canvas.offsetWidth
       canvas.height = canvas.offsetHeight
     }
