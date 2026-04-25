@@ -1,90 +1,84 @@
 /**
- * useAIWave — React hook that calls POST /api/next-wave
+ * useAIWave — React hook that POSTs end-of-wave stats to the backend
  * and returns the AI-generated WaveConfig for the next wave.
  */
 
 import { useState, useCallback } from 'react'
-import { z } from 'zod'
-import type { PlayerStats } from '@/game/StatsTracker'
-import type { WaveConfig } from '@/game/entities/Enemy'
+import type { PlayerStats, WaveConfig } from '../../../shared/types'
 
-// Runtime validation schema for the API response
-const WaveConfigSchema = z.object({
-  enemyCount: z.number().int().min(1).max(30),
-  enemySpeed: z.number().min(20).max(500),
-  enemyHp: z.number().int().min(1).max(20),
-  pattern: z.enum(['linear', 'zigzag', 'dive', 'hover']),
-  shootFrequency: z.number().min(0).max(5),
-  scorePerKill: z.number().min(10),
-  comment: z.string().optional(),
-})
-
-interface UseAIWaveReturn {
-  fetchNextWave: (stats: PlayerStats) => Promise<WaveConfig>
+interface UseAIWaveState {
+  waveConfig: WaveConfig | null
   isLoading: boolean
   error: string | null
   lastComment: string | null
 }
 
-// Sensible fallback in case the API is unavailable
-function buildFallbackConfig(stats: PlayerStats): WaveConfig {
-  const difficulty = Math.min(stats.wave * 0.15, 1.5)
-  return {
-    enemyCount: Math.min(6 + stats.wave, 20),
-    enemySpeed: Math.round(70 + difficulty * 80),
-    enemyHp: Math.ceil(1 + difficulty),
-    pattern: (['linear', 'zigzag', 'dive', 'hover'] as const)[stats.wave % 4],
-    shootFrequency: Math.min(stats.wave * 0.1, 1.5),
-    scorePerKill: Math.round(100 + stats.wave * 20),
-    comment: 'The oracle is silent... the darkness decides.',
-  }
+interface UseAIWaveReturn extends UseAIWaveState {
+  fetchNextWave: (stats: PlayerStats) => Promise<WaveConfig | null>
+  reset: () => void
+}
+
+const FALLBACK_WAVE: WaveConfig = {
+  enemyCount: 8,
+  speed: 1.5,
+  shootFrequency: 1.0,
+  pattern: 'random',
+  powerUpSpawn: false,
+  comment: 'The mist thickens… the wizard stands firm.',
 }
 
 export function useAIWave(): UseAIWaveReturn {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [lastComment, setLastComment] = useState<string | null>(null)
+  const [state, setState] = useState<UseAIWaveState>({
+    waveConfig: null,
+    isLoading: false,
+    error: null,
+    lastComment: null,
+  })
 
-  const fetchNextWave = useCallback(async (stats: PlayerStats): Promise<WaveConfig> => {
-    setIsLoading(true)
-    setError(null)
+  const fetchNextWave = useCallback(async (stats: PlayerStats): Promise<WaveConfig | null> => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }))
 
     try {
-      const response = await fetch('/api/next-wave', {
+      const res = await fetch('/api/next-wave', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stats),
-        signal: AbortSignal.timeout(8000), // 8 second timeout
+        body: JSON.stringify({ stats }),
       })
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`)
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody?.error ?? `HTTP ${res.status}`)
       }
 
-      const raw: unknown = await response.json()
-      const parsed = WaveConfigSchema.safeParse(raw)
+      const data = await res.json() as { wave: WaveConfig }
+      const config = data.wave
 
-      if (!parsed.success) {
-        console.warn('[useAIWave] Invalid API response, using fallback:', parsed.error.format())
-        throw new Error('Invalid wave config received from server')
-      }
+      setState({
+        waveConfig: config,
+        isLoading: false,
+        error: null,
+        lastComment: config.comment,
+      })
 
-      const config = parsed.data as WaveConfig
-      if (config.comment) setLastComment(config.comment)
       return config
-
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
-      setError(message)
-      console.error('[useAIWave] Falling back to local config:', message)
-      const fallback = buildFallbackConfig(stats)
-      if (fallback.comment) setLastComment(fallback.comment)
-      return fallback
+      console.warn('[useAIWave] Error fetching wave config — using fallback:', message)
 
-    } finally {
-      setIsLoading(false)
+      setState({
+        waveConfig: FALLBACK_WAVE,
+        isLoading: false,
+        error: message,
+        lastComment: FALLBACK_WAVE.comment,
+      })
+
+      return FALLBACK_WAVE
     }
   }, [])
 
-  return { fetchNextWave, isLoading, error, lastComment }
+  const reset = useCallback(() => {
+    setState({ waveConfig: null, isLoading: false, error: null, lastComment: null })
+  }, [])
+
+  return { ...state, fetchNextWave, reset }
 }
