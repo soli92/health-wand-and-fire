@@ -1,79 +1,40 @@
 /**
- * Card — shadcn/ui registry component (local copy).
- * Subcomponents: Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter.
+ * Card — shadcn/ui registry component.
+ * Styled with SoliDS semantic tokens.
  */
 
 import * as React from 'react'
 
-export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className = '', ...props }, ref) => (
+export function Card({ className = '', ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
     <div
-      ref={ref}
-      className={[
-        'rounded-xl border border-border bg-card text-card-foreground shadow',
-        className,
-      ].join(' ')}
+      className={`rounded-xl border border-border bg-card text-card-foreground shadow-sm ${className}`}
       {...props}
     />
-  ),
-)
-Card.displayName = 'Card'
+  )
+}
 
-const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className = '', ...props }, ref) => (
-    <div
-      ref={ref}
-      className={['flex flex-col space-y-1.5 p-6', className].join(' ')}
-      {...props}
-    />
-  ),
-)
-CardHeader.displayName = 'CardHeader'
+export function CardHeader({ className = '', ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={`flex flex-col space-y-1.5 p-6 ${className}`} {...props} />
+}
 
-const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className = '', ...props }, ref) => (
+export function CardTitle({ className = '', ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return (
     <h3
-      ref={ref}
-      className={['font-semibold leading-none tracking-tight', className].join(' ')}
+      className={`text-lg font-semibold leading-none tracking-tight text-foreground ${className}`}
       {...props}
     />
-  ),
-)
-CardTitle.displayName = 'CardTitle'
+  )
+}
 
-const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
-  ({ className = '', ...props }, ref) => (
-    <p
-      ref={ref}
-      className={['text-sm text-muted-foreground', className].join(' ')}
-      {...props}
-    />
-  ),
-)
-CardDescription.displayName = 'CardDescription'
+export function CardDescription({ className = '', ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={`text-sm text-muted-foreground ${className}`} {...props} />
+}
 
-const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className = '', ...props }, ref) => (
-    <div
-      ref={ref}
-      className={['p-6 pt-0', className].join(' ')}
-      {...props}
-    />
-  ),
-)
-CardContent.displayName = 'CardContent'
+export function CardContent({ className = '', ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={`p-6 pt-0 ${className}`} {...props} />
+}
 
-const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className = '', ...props }, ref) => (
-    <div
-      ref={ref}
-      className={['flex items-center p-6 pt-0', className].join(' ')}
-      {...props}
-    />
-  ),
-)
-CardFooter.displayName = 'CardFooter'
-
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
+export function CardFooter({ className = '', ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={`flex items-center p-6 pt-0 ${className}`} {...props} />
+}
