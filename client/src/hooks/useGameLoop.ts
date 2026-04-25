@@ -184,7 +184,7 @@ export function useGameLoop({
           gs.lives = wizard.lives
           stats.recordLifeLost()
         }
-        enemy.hp = 0 // remove enemy that reached bottom
+        enemy.hp = 0
       }
     }
 
