@@ -55,7 +55,7 @@ Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 - **Produzione:** in `server/app.ts`, CORS è impostato su `http://localhost:5173`. Per un frontend su un altro dominio (es. Vercel) va consentita l’origine reale dell’app (idealmente via variabile d’ambiente), altrimenti il browser bloccherà le richieste a `/api/next-wave`
 
 ### Test (Vitest)
-- **Client:** `npm test` in `client/` — file in `src/game/__tests__/**/*.test.ts`
+- **Client:** `npm test` in `client/` — file in `src/game/__tests__/**/*.test.ts` (inclusi `TouchInputSystem`, collisioni, `StatsTracker`, schemi condivisi)
 - **Server:** `npm test` in `server/` — file in `__tests__/**/*.test.ts`; usa `supertest` + `createApp({ getNextWave })` senza chiamare Claude
 - **CI:** `.github/workflows/ci.yml` esegue test + build su entrambi i workspace (branch `main`)
 
@@ -72,6 +72,7 @@ React → gestisce: MenuScreen, GameScreen layout, HUD (via ref + setInterval), 
 
 - `GameLoop.ts` — requestAnimationFrame con fixed timestep (60fps)
 - `StatsTracker.ts` — accumula stats per-wave, `snapshot(wave)` al termine
+- `InputSystem.ts` — tastiera; `TouchInputSystem.ts` — pointer sul canvas (joystick basso-sinistra + fire sulla striscia bassa). In `useGameLoop` gli snapshot si uniscono con `mergeInputState` (OR).
 - `useGameLoop.ts` — hook React che wrappa GameLoop su canvas ref
 - `useAIWave.ts` — hook React per `POST /api/next-wave`
 

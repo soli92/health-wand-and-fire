@@ -130,6 +130,13 @@ export default function GameScreen() {
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-20">
             <p className="text-3xl font-bold text-primary">⏸ Paused</p>
             <p className="text-muted-foreground text-sm">Press P to resume</p>
+            <button
+              type="button"
+              onClick={resumeGame}
+              className="mt-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-lg"
+            >
+              Resume
+            </button>
           </div>
         )}
 
@@ -168,6 +175,9 @@ export default function GameScreen() {
                 {'  '}
                 <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">P</kbd>
                 {'  '}Pause
+              </p>
+              <p className="text-[11px] max-w-[280px] leading-relaxed">
+                Touch: drag near the bottom-left nub to move; tap the bottom bar (right side) to cast.
               </p>
             </div>
 

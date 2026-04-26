@@ -67,3 +67,12 @@ export class InputSystem {
     return this.listening
   }
 }
+
+/** OR-merge for combining keyboard and touch snapshots each tick. */
+export function mergeInputState(a: InputState, b: InputState): InputState {
+  return {
+    left: a.left || b.left,
+    right: a.right || b.right,
+    fire: a.fire || b.fire,
+  }
+}
