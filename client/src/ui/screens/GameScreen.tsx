@@ -2,6 +2,9 @@
  * GameScreen — the main game view.
  * Owns: canvas ref, game state read loop, AI wave fetching, routing.
  * Game logic lives entirely in useGameLoop (pure JS, no React state in hot path).
+ *
+ * Import depth: client/src/ui/screens/ → ../../../../shared/types
+ * (screens → ui → src → client → root → shared/types)
  */
 
 import { useRef, useState, useCallback, useEffect } from 'react'
@@ -31,34 +34,15 @@ export default function GameScreen() {
 
   // HUD state — updated via setInterval, NOT per-frame
   const [hudState, setHudState] = useState<GameState>(INITIAL_STATE)
-  const [started, setStarted] = useState(false)
+  const [started, setStarted]   = useState(false)
 
   const { loading, error, lastConfig, fetchNextWave } = useAIWave()
 
-  // ── Callbacks passed into useGameLoop ────────────────────────────────────
+  // ── Callbacks ─────────────────────────────────────────────────────────────
 
   const handleGameStateChange = useCallback((state: GameState) => {
     setHudState({ ...state })
   }, [])
-
-  const handleWaveEnd = useCallback(
-    async (snapshot: ReturnType<StatsTracker['snapshot']>) => {
-      // Map StatsTracker snapshot → PlayerStats (shared types)
-      const playerStats = {
-        wave: snapshot.wave,
-        accuracy: snapshot.accuracy,
-        livesLost: snapshot.livesLost,
-        timeMs: snapshot.waveDurationMs,
-        scoreGained: snapshot.scoreGained,
-      }
-      const config = await fetchNextWave(playerStats)
-      if (config) {
-        applyNextWave(config)
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fetchNextWave],
-  )
 
   const handleGameOver = useCallback(
     (finalScore: number) => {
@@ -69,17 +53,27 @@ export default function GameScreen() {
     [navigate, hudState.wave],
   )
 
-  // ── Game loop hook ────────────────────────────────────────────────────────
+  // ── Game loop hook (must be defined before handleWaveEnd uses applyNextWave) ─
 
   const { startGame, applyNextWave, pauseGame, resumeGame, gameStateRef } =
     useGameLoop({
       canvasRef,
       onGameStateChange: handleGameStateChange,
-      onWaveEnd: handleWaveEnd,
+      onWaveEnd: async (snapshot: ReturnType<StatsTracker['snapshot']>) => {
+        const playerStats = {
+          wave:        snapshot.wave,
+          accuracy:    snapshot.accuracy,
+          livesLost:   snapshot.livesLost,
+          timeMs:      snapshot.waveDurationMs,
+          scoreGained: snapshot.scoreGained,
+        }
+        const config = await fetchNextWave(playerStats)
+        if (config) applyNextWave(config)
+      },
       onGameOver: handleGameOver,
     })
 
-  // ── HUD polling — reads mutable gameStateRef every 200ms ─────────────────
+  // ── HUD polling — reads mutable ref every 200ms ───────────────────────────
 
   useEffect(() => {
     if (!started) return
@@ -89,7 +83,7 @@ export default function GameScreen() {
     return () => clearInterval(id)
   }, [started, gameStateRef])
 
-  // ── Start game once canvas is mounted ────────────────────────────────────
+  // ── Start ─────────────────────────────────────────────────────────────────
 
   const handleStart = useCallback(() => {
     setStarted(true)
@@ -97,14 +91,13 @@ export default function GameScreen() {
     startGame()
   }, [startGame])
 
-  // ── Keyboard: P to pause ─────────────────────────────────────────────────
+  // ── P = pause/resume ──────────────────────────────────────────────────────
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code === 'KeyP') {
-        if (gameStateRef.current.paused) resumeGame()
-        else pauseGame()
-      }
+      if (e.code !== 'KeyP') return
+      if (gameStateRef.current.paused) resumeGame()
+      else pauseGame()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -115,21 +108,21 @@ export default function GameScreen() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center">
 
-      {/* Game container */}
+      {/* Fixed-size game viewport */}
       <div
         className="relative bg-black rounded-xl overflow-hidden shadow-2xl shadow-primary/20 border border-border"
         style={{ width: CANVAS_W, height: CANVAS_H }}
       >
-        {/* Canvas */}
+        {/* Game canvas */}
         <canvas
           ref={canvasRef}
           width={CANVAS_W}
           height={CANVAS_H}
           className="block"
-          aria-label="Health, Wand and Fire game canvas"
+          aria-label="Health, Wand and Fire — game canvas"
         />
 
-        {/* HUD overlay */}
+        {/* HUD — always on top when game started */}
         {started && <HUD gameState={hudState} aiLoading={loading} />}
 
         {/* Pause overlay */}
@@ -150,26 +143,41 @@ export default function GameScreen() {
           </div>
         )}
 
-        {/* Start screen */}
+        {/* Pre-start overlay */}
         {!started && (
           <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-6 z-20">
             <div className="text-center space-y-2">
               <div className="text-5xl">🧙‍♂️</div>
               <h2 className="text-2xl font-bold text-primary">Ready, Wizard?</h2>
               <p className="text-muted-foreground text-sm max-w-xs text-center px-4">
-                Use ← → to move · Space to cast spells · Survive every Omen Wave
+                Survive every Omen Wave. The AI adapts — and so must you.
               </p>
             </div>
+
+            {/* Controls */}
             <div className="text-xs text-muted-foreground space-y-1 text-center">
-              <p><kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">← →</kbd> Move &nbsp; <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">A D</kbd> Move</p>
-              <p><kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">Space</kbd> Cast Spell &nbsp; <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">P</kbd> Pause</p>
+              <p>
+                <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">← →</kbd>
+                {' / '}
+                <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">A D</kbd>
+                {'  '}Move
+              </p>
+              <p>
+                <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">Space</kbd>
+                {'  '}Cast Spell
+                {'  '}
+                <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">P</kbd>
+                {'  '}Pause
+              </p>
             </div>
+
             <button
               onClick={handleStart}
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg px-10 py-4 rounded-xl transition-all shadow-lg shadow-primary/30 hover:scale-105 active:scale-95"
             >
               ⚡ Begin the Omen
             </button>
+
             <button
               onClick={() => navigate('/')}
               className="text-muted-foreground hover:text-foreground text-sm transition-colors"
@@ -180,7 +188,7 @@ export default function GameScreen() {
         )}
       </div>
 
-      {/* AI Debug Panel — DEV only, outside canvas container so it's always visible */}
+      {/* AI Debug Panel — DEV only, outside canvas so it floats freely */}
       <AIDebugPanel config={lastConfig} loading={loading} error={error} />
     </div>
   )
