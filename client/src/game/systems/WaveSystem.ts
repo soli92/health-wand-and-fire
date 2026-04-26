@@ -7,6 +7,9 @@
 import { DarkCreature } from '../entities/Enemy'
 import type { WaveConfig } from '../../../../shared/types'
 
+// Path: client/src/game/systems/ → ../../../../shared/types
+// (client/src/game/systems → client/src/game → client/src → client → root → shared/types)
+
 export interface WaveSystemOptions {
   canvasWidth: number
   canvasHeight: number
@@ -67,7 +70,7 @@ export class WaveSystem {
     return this.currentConfig
   }
 
-  /** Remove dead enemies and out-of-bounds — returns removed indices for cleanup */
+  /** Remove dead enemies */
   pruneEnemies(): void {
     this.enemies = this.enemies.filter(e => !e.isDead)
   }
@@ -83,7 +86,7 @@ export class WaveSystem {
       if (spell) fired.push(spell)
     }
 
-    // Update health potion
+    // Update health potion fall
     if (this.healthPotion?.active) {
       this.healthPotion.y += (this.healthPotion.vy * dt) / 1000
       if (this.healthPotion.y > this.canvasHeight) {
@@ -127,22 +130,21 @@ export class WaveSystem {
     const cols = Math.ceil(Math.sqrt(enemyCount))
     const rows = Math.ceil(enemyCount / cols)
     const spacingX = (this.canvasWidth - 60) / cols
-    const spacingY = 48
+    const spacingY = 52
 
     let count = 0
     for (let row = 0; row < rows && count < enemyCount; row++) {
       for (let col = 0; col < cols && count < enemyCount; col++) {
         const x = 30 + col * spacingX + (spacingX / 2 - 18)
-        const y = 40 + row * spacingY
+        const y = 50 + row * spacingY
 
-        // Map AI pattern to entity movement pattern
         const entityPattern = this.mapPattern(pattern, count, enemyCount)
 
         this.enemies.push(
           new DarkCreature({
             x,
             y,
-            speed: speed * 80, // AI speed (0.5–3.0) → px/sec
+            speed: speed * 80,           // AI 0.5–3.0 → px/sec
             hp: Math.max(1, Math.floor(speed)),
             pattern: entityPattern,
             shootFrequency,
@@ -161,18 +163,18 @@ export class WaveSystem {
     total: number,
   ): DarkCreature['pattern'] {
     switch (aiPattern) {
-      case 'swarm':   return 'linear'
-      case 'wall':    return 'linear'
-      case 'random':  return (['linear', 'zigzag', 'hover'] as const)[index % 3]
-      case 'pincer':  return index < total / 2 ? 'dive' : 'zigzag'
+      case 'swarm':    return 'linear'
+      case 'wall':     return 'linear'
+      case 'random':   return (['linear', 'zigzag', 'hover'] as const)[index % 3]
+      case 'pincer':   return index < total / 2 ? 'dive' : 'zigzag'
       case 'flanking': return index % 2 === 0 ? 'dive' : 'hover'
-      default:        return 'linear'
+      default:         return 'linear'
     }
   }
 
   private spawnHealthPotion(): void {
     this.healthPotion = {
-      x: Math.random() * (this.canvasWidth - 24),
+      x: 20 + Math.random() * (this.canvasWidth - 60),
       y: -30,
       width: 24,
       height: 30,
@@ -188,7 +190,7 @@ export class WaveSystem {
     ctx.save()
     // Bottle body
     ctx.fillStyle = '#22c55e'
-    ctx.shadowBlur = 12
+    ctx.shadowBlur = 14
     ctx.shadowColor = '#22c55e'
     ctx.beginPath()
     ctx.roundRect(p.x + 4, p.y + 8, p.width - 8, p.height - 8, 4)
@@ -204,7 +206,7 @@ export class WaveSystem {
     ctx.fillRect(p.x + 7, p.y, p.width - 14, 4)
 
     // Cross symbol
-    ctx.fillStyle = 'rgba(255,255,255,0.8)'
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'
     ctx.fillRect(p.x + p.width / 2 - 2, p.y + 12, 4, 12)
     ctx.fillRect(p.x + p.width / 2 - 6, p.y + 16, 12, 4)
 
