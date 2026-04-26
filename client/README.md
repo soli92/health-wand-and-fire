@@ -33,7 +33,8 @@ client/
 │   │   └── systems/
 │   │       ├── CollisionSystem.ts
 │   │       ├── WaveSystem.ts
-│   │       └── InputSystem.ts
+│   │       ├── InputSystem.ts
+│   │       └── TouchInputSystem.ts  ← pointer joystick + fire strip (merged with keyboard)
 │   ├── hooks/
 │   │   ├── useGameLoop.ts   ← Wires game engine to canvas ref
 │   │   └── useAIWave.ts     ← POST /api/next-wave with Zod validation
@@ -77,3 +78,4 @@ Set the Vercel project **Root Directory** to `client`, output **`dist`**, build 
 - **AI wave generation** includes graceful fallback: if `/api/next-wave` is unavailable, a deterministic local config is used
 - **Theme-aware canvas colors** — reads `--color-primary` / `--color-destructive` CSS custom properties at render time
 - **`@soli92/solids`** provides only CSS tokens + Tailwind preset; UI components are local shadcn/ui registry copies under `src/components/ui`
+- **Touch** — `TouchInputSystem` on the canvas (bottom-left stick, bottom bar for fire); merged each frame with keyboard via `mergeInputState` in `useGameLoop`

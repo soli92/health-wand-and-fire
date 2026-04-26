@@ -111,7 +111,7 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 
 **Cosa è stato fatto:**
 
-- **Client (Vitest):** test su `StatsTracker` (accuracy, reset, durata), `CollisionSystem` (`rectsOverlap`, kill punteggio, invincibilità), schemi Zod in `shared/types.ts` (già presenti, estesi con suite dedicate).
+- **Client (Vitest):** test su `StatsTracker` (accuracy, reset, durata), `CollisionSystem` (`rectsOverlap`, kill punteggio, invincibilità), helper touch (`TouchInputSystem.test.ts`), schemi Zod in `shared/types.ts` (già presenti, estesi con suite dedicate).
 - **Server (Vitest + supertest):** `server/app.ts` con `createApp({ getNextWave? })` per montare Express senza ascoltare la porta; `createWaveRouter` riceve la callback AI iniettata. Test HTTP su `POST /api/next-wave` (200, 400, 500) e `GET /health`.
 - **Route `/api/next-wave`:** passaggio da `parse` + `instanceof ZodError` a **`NextWaveRequestSchema.safeParse`**, così gli errori di validazione restano **400** anche quando `zod` è duplicato in `node_modules` (es. sotto `shared/`) e `instanceof` fallirebbe.
 - **CI:** workflow GitHub Actions esegue anche `npm test` sul server, non solo build.
@@ -122,13 +122,28 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 
 ---
 
+### Fase 4 — Touch / pointer sul canvas
+
+**Cosa è stato fatto:**
+
+- **`TouchInputSystem.ts`**: pointer events sul canvas, coordinate mappate da CSS rect a spazio logico 480×640 (`clientToGameCoords`). Zona joystick (cerchio basso-sinistra) per sinistra/destra con dead zone; striscia inferiore destra per **fire** (escluso il disco dello stick). `touch-action: none` sul canvas.
+- **`InputSystem.ts`**: `mergeInputState` — ogni tick `useGameLoop` unisce tastiera + touch (OR su left/right/fire).
+- **`useGameLoop.ts`**: attach/detach del touch insieme al ciclo di vita del gioco; cleanup su game over e unmount.
+- **`GameScreen.tsx`**: testo istruzioni touch nel pre-start; overlay pausa con pulsante **Resume** (oltre a P).
+- **Test Vitest:** `TouchInputSystem.test.ts` (mapping, hit zone, merge); ambiente `node` senza DOM reale.
+
+---
+
 ## TODO / Roadmap
 
-- [ ] Touch controls per mobile (joystick virtuale canvas)
+**Stato repo (ultima verifica codice):** tastiera + touch canvas (`InputSystem`, `TouchInputSystem`, merge in `useGameLoop`). Mancano ancora: audio Web, Supabase, `localStorage` high score, particelle a morte nemici, modalità manuale bypass AI. Il server espone CORS solo verso `http://localhost:5173` (`server/app.ts`) — va esteso per un client in produzione.
+
+- [x] Touch controls per mobile (joystick virtuale canvas + fire strip; tastiera invariata)
 - [ ] Sound effects con Web Audio API (tono fantasy)
 - [ ] Leaderboard con Supabase
-- [ ] Deploy: client su Vercel, server su Railway/Render
-- [x] GitHub Actions CI (client test + build, server build)
+- [x] Deploy client su Vercel — `client/vercel.json` (rewrite SPA → `index.html`); in dashboard Vercel: Root Directory `client`, output `dist`
+- [ ] Deploy server `POST /api/next-wave` (Railway, Render, serverless, ecc.) + segreti / `ANTHROPIC_API_KEY` + **CORS** allineato all’origine del frontend
+- [x] GitHub Actions CI — `npm ci`, test e build su **client e server** (`.github/workflows/ci.yml`, branch `main`)
 - [ ] Modalità difficoltà manuale (bypass AI director)
 - [ ] Animazioni particelle alla morte nemici
 - [ ] High score localStorage

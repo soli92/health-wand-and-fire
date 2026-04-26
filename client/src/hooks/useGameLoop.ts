@@ -8,7 +8,8 @@ import { useRef, useEffect, useCallback } from 'react'
 import { GameLoop } from '../game/GameLoop'
 import { Wizard } from '../game/entities/Player'
 import { Spell } from '../game/entities/Bullet'
-import { InputSystem } from '../game/systems/InputSystem'
+import { InputSystem, mergeInputState } from '../game/systems/InputSystem'
+import { TouchInputSystem } from '../game/systems/TouchInputSystem'
 import { WaveSystem } from '../game/systems/WaveSystem'
 import { StatsTracker } from '../game/StatsTracker'
 import { runCollisions } from '../game/systems/CollisionSystem'
@@ -38,6 +39,7 @@ export function useGameLoop({
 }: UseGameLoopOptions) {
   const loopRef    = useRef<GameLoop | null>(null)
   const inputRef   = useRef<InputSystem | null>(null)
+  const touchRef   = useRef<TouchInputSystem | null>(null)
   const waveRef    = useRef<WaveSystem | null>(null)
   const statsRef   = useRef<StatsTracker | null>(null)
   const wizardRef  = useRef<Wizard | null>(null)
@@ -80,6 +82,8 @@ export function useGameLoop({
     // Tear down any previous loop
     loopRef.current?.stop()
     inputRef.current?.stopListening()
+    touchRef.current?.detach()
+    touchRef.current = null
 
     const loop    = new GameLoop()
     const input   = new InputSystem()
@@ -106,6 +110,9 @@ export function useGameLoop({
 
     initStars()
     input.startListening()
+    const touch = new TouchInputSystem({ canvasW: CANVAS_W, canvasH: CANVAS_H })
+    touch.attach(canvas)
+    touchRef.current = touch
     wave.startDefaultWave()
 
     // ── Fixed update ────────────────────────────────────────────────────────
@@ -113,7 +120,7 @@ export function useGameLoop({
       const gs = gameStateRef.current
       if (!gs.running || gs.paused || waitingForAIRef.current) return
 
-      const inputState = input.getState()
+      const inputState = mergeInputState(input.getState(), touch.getState())
 
       // Wizard movement + shooting
       wizard.update(dt, inputState)
@@ -166,6 +173,8 @@ export function useGameLoop({
       if (wizard.isDead) {
         gs.running = false
         input.stopListening()
+        touchRef.current?.detach()
+        touchRef.current = null
         loop.stop()
         onGameOver(gs.score)
         return
@@ -228,6 +237,8 @@ export function useGameLoop({
     return () => {
       loopRef.current?.stop()
       inputRef.current?.stopListening()
+      touchRef.current?.detach()
+      touchRef.current = null
     }
   }, [])
 
