@@ -124,11 +124,14 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 
 ## TODO / Roadmap
 
+**Stato repo (ultima verifica codice):** input di gioco solo tastiera (`client/src/game/systems/InputSystem.ts`); nessun audio Web, Supabase, `localStorage` per high score, particelle a morte nemici, né modalità manuale che bypassi l’AI. Il server espone CORS solo verso `http://localhost:5173` (`server/app.ts`) — va esteso per un client in produzione.
+
 - [ ] Touch controls per mobile (joystick virtuale canvas)
 - [ ] Sound effects con Web Audio API (tono fantasy)
 - [ ] Leaderboard con Supabase
-- [ ] Deploy: client su Vercel, server su Railway/Render
-- [x] GitHub Actions CI (client test + build, server build)
+- [x] Deploy client su Vercel — `client/vercel.json` (rewrite SPA → `index.html`); in dashboard Vercel: Root Directory `client`, output `dist`
+- [ ] Deploy server `POST /api/next-wave` (Railway, Render, serverless, ecc.) + segreti / `ANTHROPIC_API_KEY` + **CORS** allineato all’origine del frontend
+- [x] GitHub Actions CI — `npm ci`, test e build su **client e server** (`.github/workflows/ci.yml`, branch `main`)
 - [ ] Modalità difficoltà manuale (bypass AI director)
 - [ ] Animazioni particelle alla morte nemici
 - [ ] High score localStorage

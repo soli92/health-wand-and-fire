@@ -52,6 +52,7 @@ Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 - **Root Directory** del progetto Vercel: `client` — output build: `dist`
 - **`client/vercel.json`**: rewrite catch-all → `index.html` così `/game`, `/gameover` e refresh non danno 404
 - L’API AI va deployata separatamente; in dev il proxy Vite manda `/api` al server su 3001
+- **Produzione:** in `server/app.ts`, CORS è impostato su `http://localhost:5173`. Per un frontend su un altro dominio (es. Vercel) va consentita l’origine reale dell’app (idealmente via variabile d’ambiente), altrimenti il browser bloccherà le richieste a `/api/next-wave`
 
 ### Test (Vitest)
 - **Client:** `npm test` in `client/` — file in `src/game/__tests__/**/*.test.ts`

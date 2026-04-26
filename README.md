@@ -118,6 +118,8 @@ This repo includes **`client/vercel.json`** with a catch-all rewrite to `/index.
 
 The game still needs a reachable **`POST /api/next-wave`** in production (separate Node host or serverless). In dev, Vite proxies `/api` to port 3001 (`vite.config.ts`).
 
+**CORS:** the Express app currently allows **`http://localhost:5173`** only. Before wiring a production build of the client to a deployed API, update CORS in `server/app.ts` (for example, env-driven allowed origins) so the browser can call `/api/next-wave`.
+
 ---
 
 ## 🔮 AI Wave System
