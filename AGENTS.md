@@ -24,8 +24,8 @@ Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 ### Frontend (`client/`)
 - **React 18** + **Vite 5** + **TypeScript**
 - **`@soli92/solids`** — Design System
-  - Importa CSS: `import '@soli92/solids/dist/index.css'` (in `main.tsx`)
-  - Preset Tailwind: `import solidsPreset from '@soli92/solids/tailwind'`
+  - Importa CSS: `import '@soli92/solids/css/index.css'` (in `main.tsx`)
+  - Preset Tailwind: `import solidsPreset from '@soli92/solids/tailwind-preset'`
   - Tema attivo: `data-theme="fantasy"` su `<body>`
   - ⚠️ I componenti UI (Button, Card, Badge…) vengono dal **registry shadcn** locale (`src/components/ui/`), **non** importati direttamente da `@soli92/solids`
 - **Tailwind CSS v3** — usa token semantici: `bg-background`, `text-foreground`, `text-primary`, `border-primary`, `text-muted-foreground`, `bg-accent`

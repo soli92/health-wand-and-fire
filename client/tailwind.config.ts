@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss'
-import solidsPreset from '@soli92/solids/tailwind'
+import solidsPreset from '@soli92/solids/tailwind-preset'
 
 export default {
   presets: [solidsPreset],

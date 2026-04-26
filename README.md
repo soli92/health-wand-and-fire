@@ -66,10 +66,10 @@ cp .env.example .env
 ### 2. Install dependencies
 
 ```bash
-# Server
+# Server (also installs ../shared for Zod schemas)
 cd server && npm install
 
-# Client
+# Client (postinstall installs ../shared — required for TypeScript)
 cd ../client && npm install
 ```
 

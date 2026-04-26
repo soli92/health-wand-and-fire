@@ -44,8 +44,8 @@ Se Claude risponde con JSON malformato o l'API è down, `aiAdapter.ts` ritorna u
 Il gioco non si interrompe mai per un errore AI.
 
 #### 4. @soli92/solids: registry shadcn, non import diretto
-- `import '@soli92/solids/dist/index.css'` per CSS e token
-- `import solidsPreset from '@soli92/solids/tailwind'` per il preset
+- `import '@soli92/solids/css/index.css'` per CSS e token (exports package SoliDS 1.7+)
+- `import solidsPreset from '@soli92/solids/tailwind-preset'` per il preset
 - Componenti (Button, Card, Badge) → `src/components/ui/` (registry locale shadcn)
 - ⚠️ NON `import { Button } from '@soli92/solids'`
 
@@ -113,7 +113,7 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 - [ ] Sound effects con Web Audio API (tono fantasy)
 - [ ] Leaderboard con Supabase
 - [ ] Deploy: client su Vercel, server su Railway/Render
-- [ ] GitHub Actions CI (lint + typecheck)
+- [x] GitHub Actions CI (client test + build, server build)
 - [ ] Modalità difficoltà manuale (bypass AI director)
 - [ ] Animazioni particelle alla morte nemici
 - [ ] High score localStorage
