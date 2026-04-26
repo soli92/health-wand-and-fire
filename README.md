@@ -104,6 +104,22 @@ On push and pull requests to `main`, GitHub Actions runs `npm ci`, tests, and pr
 
 ---
 
+## 🚀 Deploy (Vercel — client)
+
+React Router uses paths such as `/game` and `/gameover`. A static host must **rewrite** unknown paths to `index.html`, otherwise you get **404 NOT_FOUND** (for example from region `fra1`) when opening or refreshing a deep link.
+
+This repo includes **`client/vercel.json`** with a catch-all rewrite to `/index.html`. In the Vercel project settings:
+
+| Setting | Value |
+|--------|--------|
+| **Root Directory** | `client` |
+| **Build Command** | `npm run build` |
+| **Output Directory** | `dist` |
+
+The game still needs a reachable **`POST /api/next-wave`** in production (separate Node host or serverless). In dev, Vite proxies `/api` to port 3001 (`vite.config.ts`).
+
+---
+
 ## 🔮 AI Wave System
 
 At the end of each Omen Wave, `StatsTracker.snapshot()` captures:
@@ -182,6 +198,7 @@ Invalid `POST /api/next-wave` bodies return **400** with Zod field errors. The r
 | `client/src/game/StatsTracker.ts` | Collects per-wave player stats |
 | `client/src/hooks/useAIWave.ts` | React hook → AI wave fetch |
 | `client/src/ui/hud/AIDebugPanel.tsx` | Dev-only AI inspector |
+| `client/vercel.json` | SPA rewrites for React Router on Vercel |
 
 ---
 

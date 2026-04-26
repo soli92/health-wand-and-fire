@@ -47,6 +47,12 @@ Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 - Il client importa con path relativi da `client/src/...` (es. `../../../shared/types` da `hooks/`)
 - Dopo `npm install` in `client/` o `server/`, lo script **postinstall** esegue `npm install --prefix ../shared`
 
+### Deploy (Vercel, solo client)
+
+- **Root Directory** del progetto Vercel: `client` — output build: `dist`
+- **`client/vercel.json`**: rewrite catch-all → `index.html` così `/game`, `/gameover` e refresh non danno 404
+- L’API AI va deployata separatamente; in dev il proxy Vite manda `/api` al server su 3001
+
 ### Test (Vitest)
 - **Client:** `npm test` in `client/` — file in `src/game/__tests__/**/*.test.ts`
 - **Server:** `npm test` in `server/` — file in `__tests__/**/*.test.ts`; usa `supertest` + `createApp({ getNextWave })` senza chiamare Claude
