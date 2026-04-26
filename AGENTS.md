@@ -73,6 +73,7 @@ React → gestisce: MenuScreen, GameScreen layout, HUD (via ref + setInterval), 
 - `GameLoop.ts` — requestAnimationFrame con fixed timestep (60fps)
 - `StatsTracker.ts` — accumula stats per-wave, `snapshot(wave)` al termine
 - `InputSystem.ts` — tastiera; `TouchInputSystem.ts` — pointer sul canvas (joystick basso-sinistra + fire sulla striscia bassa). In `useGameLoop` gli snapshot si uniscono con `mergeInputState` (OR).
+- **Modalità UI touch** — `matchMedia('(pointer: coarse)')` (`useTouchUiMode`): se vero, `GameScreen` mostra `VirtualControlsOverlay` (etichette Move/Cast allineate a `TOUCH_DEFAULTS`) e il pulsante **Pause**; il canvas resta il target dei pointer (l’overlay ha `pointer-events: none`).
 - `useGameLoop.ts` — hook React che wrappa GameLoop su canvas ref
 - `useAIWave.ts` — hook React per `POST /api/next-wave`
 

@@ -37,11 +37,15 @@ client/
 │   │       └── TouchInputSystem.ts  ← pointer joystick + fire strip (merged with keyboard)
 │   ├── hooks/
 │   │   ├── useGameLoop.ts   ← Wires game engine to canvas ref
-│   │   └── useAIWave.ts     ← POST /api/next-wave with Zod validation
+│   │   ├── useAIWave.ts     ← POST /api/next-wave with Zod validation
+│   │   ├── useTouchUiMode.ts
+│   │   └── touchUiDetection.ts
 │   └── ui/
 │       ├── hud/
 │       │   ├── HUD.tsx
 │       │   └── AIDebugPanel.tsx  ← DEV only
+│       ├── overlays/
+│       │   └── VirtualControlsOverlay.tsx  ← Move/Cast hints (coarse pointer)
 │       └── screens/
 │           ├── MenuScreen.tsx
 │           ├── GameScreen.tsx
@@ -78,4 +82,4 @@ Set the Vercel project **Root Directory** to `client`, output **`dist`**, build 
 - **AI wave generation** includes graceful fallback: if `/api/next-wave` is unavailable, a deterministic local config is used
 - **Theme-aware canvas colors** — reads `--color-primary` / `--color-destructive` CSS custom properties at render time
 - **`@soli92/solids`** provides only CSS tokens + Tailwind preset; UI components are local shadcn/ui registry copies under `src/components/ui`
-- **Touch** — `TouchInputSystem` on the canvas (bottom-left stick, bottom bar for fire); merged each frame with keyboard via `mergeInputState` in `useGameLoop`
+- **Touch** — `TouchInputSystem` on the canvas (bottom-left stick, bottom bar for fire); merged each frame with keyboard via `mergeInputState` in `useGameLoop`. When `matchMedia('(pointer: coarse)')` matches, `VirtualControlsOverlay` + **Pause** button keep controls discoverable (`useTouchUiMode`).
