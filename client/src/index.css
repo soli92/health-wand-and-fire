@@ -2,14 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Game canvas pixel-perfect rendering */
+/* ─── Custom keyframes ───────────────────────────────────────────────────── */
+
+@keyframes slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+/* ─── Game canvas ─────────────────────────────────────────────────────────── */
+
 canvas {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  display: block;
 }
 
-/* Prevent text selection during gameplay */
-.game-screen {
+/* ─── Prevent text selection during gameplay ─────────────────────────────── */
+
+.game-screen,
+canvas {
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* ─── Smooth scrollbar (non-game screens) ────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
 }
