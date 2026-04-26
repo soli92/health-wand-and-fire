@@ -3,7 +3,7 @@
 Riassunto operativo per **Health, Wand and Fire** — fantasy arcade shooter con AI director (Claude).
 Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 
-**Aggiornato:** 2025
+**Aggiornato:** 2026
 
 ---
 
@@ -24,8 +24,8 @@ Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 ### Frontend (`client/`)
 - **React 18** + **Vite 5** + **TypeScript**
 - **`@soli92/solids`** — Design System
-  - Importa CSS: `import '@soli92/solids/dist/index.css'` (in `main.tsx`)
-  - Preset Tailwind: `import solidsPreset from '@soli92/solids/tailwind'`
+  - Importa CSS: `import '@soli92/solids/css/index.css'` (in `main.tsx`)
+  - Preset Tailwind: `import solidsPreset from '@soli92/solids/tailwind-preset'`
   - Tema attivo: `data-theme="fantasy"` su `<body>`
   - ⚠️ I componenti UI (Button, Card, Badge…) vengono dal **registry shadcn** locale (`src/components/ui/`), **non** importati direttamente da `@soli92/solids`
 - **Tailwind CSS v3** — usa token semantici: `bg-background`, `text-foreground`, `text-primary`, `border-primary`, `text-muted-foreground`, `bg-accent`
@@ -34,14 +34,23 @@ Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 
 ### Backend (`server/`)
 - **Express 4** + **TypeScript** (tsx per dev, tsc per build)
+- **`server/app.ts`** — `createApp(options?)` costruisce l’app; `index.ts` chiama `listen`
 - **`@anthropic-ai/sdk`** — model: `claude-sonnet-4-5`, max_tokens: 256
 - **Zod** — validazione body request + response AI
+- **`POST /api/next-wave`**: validazione con `NextWaveRequestSchema.safeParse` (evita mismatch `instanceof ZodError` se esistono più copie di `zod` in `node_modules`)
 - CORS abilitato per `http://localhost:5173`
 
 ### Shared (`shared/`)
-- **`shared/types.ts`** — unica fonte di verità per `PlayerStats`, `WaveConfig`, `GameState`
-- Il server importa con path relativo `../../shared/types`
-- Il client importa tramite alias Vite (configurare in `vite.config.ts` se necessario)
+- **`shared/package.json`** — dipendenza `zod` così `tsc` risolve i moduli quando si typechecka `shared/types.ts` da client o server
+- **`shared/types.ts`** — unica fonte di verità per `PlayerStats` (API), `WaveConfig`, `GameState`
+- Il server importa con path relativo `../../shared/types` (o `../shared/types` da `app.ts`)
+- Il client importa con path relativi da `client/src/...` (es. `../../../shared/types` da `hooks/`)
+- Dopo `npm install` in `client/` o `server/`, lo script **postinstall** esegue `npm install --prefix ../shared`
+
+### Test (Vitest)
+- **Client:** `npm test` in `client/` — file in `src/game/__tests__/**/*.test.ts`
+- **Server:** `npm test` in `server/` — file in `__tests__/**/*.test.ts`; usa `supertest` + `createApp({ getNextWave })` senza chiamare Claude
+- **CI:** `.github/workflows/ci.yml` esegue test + build su entrambi i workspace (branch `main`)
 
 ---
 
@@ -119,6 +128,10 @@ cd client && npm run dev        # porta 5173
 # Build
 cd server && npm run build
 cd client && npm run build
+
+# Test
+cd server && npm test
+cd client && npm test
 
 # Env
 cp .env.example .env            # aggiungi ANTHROPIC_API_KEY

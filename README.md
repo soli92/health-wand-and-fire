@@ -29,7 +29,8 @@ After each **Omen Wave**, the Wizard's performance stats are sent to **Claude** 
 health-wand-and-fire/
 ├── client/          # React + Vite + TypeScript + @soli92/solids
 ├── server/          # Node.js + Express + TypeScript + Anthropic SDK
-├── shared/          # Zod schemas shared between client and server
+├── shared/          # Zod schemas (own package.json + zod) for client/server
+├── .github/workflows/  # CI: test + build on client and server
 ├── AGENTS.md        # Context for AI assistants
 └── AI_LOG.md        # AI-assisted development log
 ```
@@ -66,10 +67,10 @@ cp .env.example .env
 ### 2. Install dependencies
 
 ```bash
-# Server
+# Server (also installs ../shared for Zod schemas)
 cd server && npm install
 
-# Client
+# Client (postinstall installs ../shared — required for TypeScript)
 cd ../client && npm install
 ```
 
@@ -84,6 +85,22 @@ cd client && npm run dev
 ```
 
 Open → **http://localhost:5173**
+
+---
+
+## 🧪 Tests
+
+Vitest is used in **client** and **server**. From each workspace after `npm install` (which also installs `shared/` via `postinstall`):
+
+```bash
+cd client && npm test
+cd server && npm test
+```
+
+- **Client:** `src/game/__tests__/**/*.test.ts` — shared Zod schemas, `StatsTracker`, `CollisionSystem`.
+- **Server:** `server/__tests__/**/*.test.ts` — HTTP contract for `/api/next-wave` and `/health` with a mock `getNextWave` (no API key required).
+
+On push and pull requests to `main`, GitHub Actions runs `npm ci`, tests, and production builds for both workspaces.
 
 ---
 
@@ -149,6 +166,8 @@ UI components (Button, Card, Badge…) come from the **shadcn/ui registry** (`sr
 - **AIDebugPanel**: visible only in `DEV` mode (bottom-right overlay), shows last WaveConfig JSON + AI comment + loading state.
 - **Vite proxy**: `/api` → `http://localhost:3001` (no CORS issues in dev)
 
+Invalid `POST /api/next-wave` bodies return **400** with Zod field errors. The route uses `safeParse` so validation works even when multiple copies of the `zod` package are present in `node_modules` (e.g. under `shared/`).
+
 ---
 
 ## 📁 Key Files
@@ -157,7 +176,8 @@ UI components (Button, Card, Badge…) come from the **shadcn/ui registry** (`sr
 |------|------|
 | `shared/types.ts` | Zod schemas + TypeScript types (single source of truth) |
 | `server/services/aiAdapter.ts` | Claude API integration |
-| `server/routes/wave.ts` | `POST /api/next-wave` endpoint |
+| `server/app.ts` | Express app factory (`createApp`) — testable without listening |
+| `server/routes/wave.ts` | `createWaveRouter(getNextWave)` — `POST /api/next-wave` |
 | `client/src/game/GameLoop.ts` | rAF game loop, pure JS |
 | `client/src/game/StatsTracker.ts` | Collects per-wave player stats |
 | `client/src/hooks/useAIWave.ts` | React hook → AI wave fetch |

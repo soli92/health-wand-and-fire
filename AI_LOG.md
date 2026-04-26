@@ -44,8 +44,8 @@ Se Claude risponde con JSON malformato o l'API è down, `aiAdapter.ts` ritorna u
 Il gioco non si interrompe mai per un errore AI.
 
 #### 4. @soli92/solids: registry shadcn, non import diretto
-- `import '@soli92/solids/dist/index.css'` per CSS e token
-- `import solidsPreset from '@soli92/solids/tailwind'` per il preset
+- `import '@soli92/solids/css/index.css'` per CSS e token (exports package SoliDS 1.7+)
+- `import solidsPreset from '@soli92/solids/tailwind-preset'` per il preset
 - Componenti (Button, Card, Badge) → `src/components/ui/` (registry locale shadcn)
 - ⚠️ NON `import { Button } from '@soli92/solids'`
 
@@ -107,13 +107,26 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 
 ---
 
+### Fase 3 — Test unitari, app testabile, validazione Zod robusta
+
+**Cosa è stato fatto:**
+
+- **Client (Vitest):** test su `StatsTracker` (accuracy, reset, durata), `CollisionSystem` (`rectsOverlap`, kill punteggio, invincibilità), schemi Zod in `shared/types.ts` (già presenti, estesi con suite dedicate).
+- **Server (Vitest + supertest):** `server/app.ts` con `createApp({ getNextWave? })` per montare Express senza ascoltare la porta; `createWaveRouter` riceve la callback AI iniettata. Test HTTP su `POST /api/next-wave` (200, 400, 500) e `GET /health`.
+- **Route `/api/next-wave`:** passaggio da `parse` + `instanceof ZodError` a **`NextWaveRequestSchema.safeParse`**, così gli errori di validazione restano **400** anche quando `zod` è duplicato in `node_modules` (es. sotto `shared/`) e `instanceof` fallirebbe.
+- **CI:** workflow GitHub Actions esegue anche `npm test` sul server, non solo build.
+
+**File principali:** `server/app.ts`, `server/__tests__/wave.test.ts`, `server/vitest.config.ts`, `client/src/game/__tests__/*.test.ts`, `.github/workflows/ci.yml`.
+
+---
+
 ## TODO / Roadmap
 
 - [ ] Touch controls per mobile (joystick virtuale canvas)
 - [ ] Sound effects con Web Audio API (tono fantasy)
 - [ ] Leaderboard con Supabase
 - [ ] Deploy: client su Vercel, server su Railway/Render
-- [ ] GitHub Actions CI (lint + typecheck)
+- [x] GitHub Actions CI (client test + build, server build)
 - [ ] Modalità difficoltà manuale (bypass AI director)
 - [ ] Animazioni particelle alla morte nemici
 - [ ] High score localStorage
