@@ -107,6 +107,19 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 
 ---
 
+### Fase 3 — Test unitari, app testabile, validazione Zod robusta
+
+**Cosa è stato fatto:**
+
+- **Client (Vitest):** test su `StatsTracker` (accuracy, reset, durata), `CollisionSystem` (`rectsOverlap`, kill punteggio, invincibilità), schemi Zod in `shared/types.ts` (già presenti, estesi con suite dedicate).
+- **Server (Vitest + supertest):** `server/app.ts` con `createApp({ getNextWave? })` per montare Express senza ascoltare la porta; `createWaveRouter` riceve la callback AI iniettata. Test HTTP su `POST /api/next-wave` (200, 400, 500) e `GET /health`.
+- **Route `/api/next-wave`:** passaggio da `parse` + `instanceof ZodError` a **`NextWaveRequestSchema.safeParse`**, così gli errori di validazione restano **400** anche quando `zod` è duplicato in `node_modules` (es. sotto `shared/`) e `instanceof` fallirebbe.
+- **CI:** workflow GitHub Actions esegue anche `npm test` sul server, non solo build.
+
+**File principali:** `server/app.ts`, `server/__tests__/wave.test.ts`, `server/vitest.config.ts`, `client/src/game/__tests__/*.test.ts`, `.github/workflows/ci.yml`.
+
+---
+
 ## TODO / Roadmap
 
 - [ ] Touch controls per mobile (joystick virtuale canvas)

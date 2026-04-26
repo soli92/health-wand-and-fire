@@ -21,9 +21,9 @@ jobs:
             server/package-lock.json
             shared/package-lock.json
 
-      - name: Server — install and build
+      - name: Server — install, test, and build
         working-directory: server
-        run: npm ci && npm run build
+        run: npm ci && npm test && npm run build
 
       - name: Client — install, test, and build
         working-directory: client

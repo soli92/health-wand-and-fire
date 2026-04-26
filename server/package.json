@@ -6,6 +6,8 @@
     "postinstall": "npm install --prefix ../shared --no-audit --no-fund",
     "dev": "tsx watch index.ts",
     "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "start": "node dist/server/index.js"
   },
   "dependencies": {
@@ -19,7 +21,10 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vitest": "^1.6.0"
   }
 }

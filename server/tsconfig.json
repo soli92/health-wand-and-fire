@@ -12,5 +12,5 @@
     }
   },
   "include": ["./**/*.ts", "../shared/**/*.ts"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules", "**/__tests__/**", "vitest.config.ts"]
 }
