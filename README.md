@@ -90,6 +90,8 @@ Open → **http://localhost:5173**
 
 On the game canvas (after **Begin the Omen**): drag in the **bottom-left** circular area to move; tap the **bottom edge** on the **right** side (outside that circle) to cast spells. Keyboard (**A/D**, **Space**) still works on desktop. While paused, use **P** or the **Resume** button.
 
+On **coarse pointers** (typical phones), the game draws a visible **Move** ring and **Cast** bar over the canvas (same geometry as the hit zones), plus a **Pause** control; touches still hit the canvas underneath.
+
 ---
 
 ## 🧪 Tests
@@ -101,7 +103,7 @@ cd client && npm test
 cd server && npm test
 ```
 
-- **Client:** `src/game/__tests__/**/*.test.ts` — shared Zod schemas, `StatsTracker`, `CollisionSystem`, touch input helpers (`TouchInputSystem`).
+- **Client:** `src/game/__tests__/**/*.test.ts`, `src/hooks/__tests__/**/*.test.ts` — shared Zod schemas, `StatsTracker`, `CollisionSystem`, touch input (`TouchInputSystem`), coarse-pointer detection (`touchUiDetection`).
 - **Server:** `server/__tests__/**/*.test.ts` — HTTP contract for `/api/next-wave` and `/health` with a mock `getNextWave` (no API key required).
 
 On push and pull requests to `main`, GitHub Actions runs `npm ci`, tests, and production builds for both workspaces.
@@ -204,6 +206,7 @@ Invalid `POST /api/next-wave` bodies return **400** with Zod field errors. The r
 | `client/src/game/StatsTracker.ts` | Collects per-wave player stats |
 | `client/src/hooks/useAIWave.ts` | React hook → AI wave fetch |
 | `client/src/game/systems/TouchInputSystem.ts` | Pointer-based virtual joystick + fire zone on canvas |
+| `client/src/ui/overlays/VirtualControlsOverlay.tsx` | Visible Move/Cast hints when `(pointer: coarse)` |
 | `client/src/ui/hud/AIDebugPanel.tsx` | Dev-only AI inspector |
 | `client/vercel.json` | SPA rewrites for React Router on Vercel |
 

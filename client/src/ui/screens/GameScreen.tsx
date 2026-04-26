@@ -11,8 +11,10 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameLoop } from '../../hooks/useGameLoop'
 import { useAIWave } from '../../hooks/useAIWave'
+import { useTouchUiMode } from '../../hooks/useTouchUiMode'
 import HUD from '../hud/HUD'
 import AIDebugPanel from '../hud/AIDebugPanel'
+import VirtualControlsOverlay from '../overlays/VirtualControlsOverlay'
 import type { GameState } from '../../../../shared/types'
 import type { StatsTracker } from '../../game/StatsTracker'
 
@@ -37,6 +39,7 @@ export default function GameScreen() {
   const [started, setStarted]   = useState(false)
 
   const { loading, error, lastConfig, fetchNextWave } = useAIWave()
+  const touchUiMode = useTouchUiMode()
 
   // ── Callbacks ─────────────────────────────────────────────────────────────
 
@@ -125,11 +128,32 @@ export default function GameScreen() {
         {/* HUD — always on top when game started */}
         {started && <HUD gameState={hudState} aiLoading={loading} />}
 
+        {/* Pause — touch devices have no P key */}
+        {started && touchUiMode && hudState.running && !hudState.paused && !loading && (
+          <button
+            type="button"
+            onClick={pauseGame}
+            className="absolute right-2 top-10 z-[15] rounded-md border border-border bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-md backdrop-blur-sm active:scale-95"
+            aria-label="Pause game"
+          >
+            Pause
+          </button>
+        )}
+
+        {/* Virtual control zones — visible on coarse pointers (typical mobile) */}
+        {started && touchUiMode && hudState.running && !hudState.paused && (
+          <VirtualControlsOverlay />
+        )}
+
         {/* Pause overlay */}
         {hudState.paused && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-20">
             <p className="text-3xl font-bold text-primary">⏸ Paused</p>
-            <p className="text-muted-foreground text-sm">Press P to resume</p>
+            <p className="text-muted-foreground text-sm text-center px-4">
+              {touchUiMode
+                ? 'Tap Resume below. On the canvas: drag the Move ring and tap the Cast strip to play.'
+                : 'Press P to resume'}
+            </p>
             <button
               type="button"
               onClick={resumeGame}
@@ -162,23 +186,38 @@ export default function GameScreen() {
             </div>
 
             {/* Controls */}
-            <div className="text-xs text-muted-foreground space-y-1 text-center">
-              <p>
-                <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">← →</kbd>
-                {' / '}
-                <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">A D</kbd>
-                {'  '}Move
-              </p>
-              <p>
-                <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">Space</kbd>
-                {'  '}Cast Spell
-                {'  '}
-                <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">P</kbd>
-                {'  '}Pause
-              </p>
-              <p className="text-[11px] max-w-[280px] leading-relaxed">
-                Touch: drag near the bottom-left nub to move; tap the bottom bar (right side) to cast.
-              </p>
+            <div className="text-xs text-muted-foreground space-y-2 text-center max-w-[300px]">
+              {touchUiMode ? (
+                <>
+                  <p className="text-primary/90 font-medium text-[13px]">On-screen controls</p>
+                  <p className="text-[11px] leading-relaxed">
+                    After you begin, you will see a <strong className="text-foreground">Move</strong> ring
+                    bottom-left and a shaded <strong className="text-foreground">Cast</strong> strip along
+                    the bottom edge. Drag inside the ring to strafe; tap the strip (outside the ring) to
+                    fire. Use the <strong className="text-foreground">Pause</strong> button (top-right) to
+                    stop, then <strong className="text-foreground">Resume</strong> here.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>
+                    <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">← →</kbd>
+                    {' / '}
+                    <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">A D</kbd>
+                    {'  '}Move
+                  </p>
+                  <p>
+                    <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">Space</kbd>
+                    {'  '}Cast Spell
+                    {'  '}
+                    <kbd className="bg-muted px-1.5 py-0.5 rounded text-foreground">P</kbd>
+                    {'  '}Pause
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    Touch devices: you can still use the on-screen ring and bottom bar after starting.
+                  </p>
+                </>
+              )}
             </div>
 
             <button

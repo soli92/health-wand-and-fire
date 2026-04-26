@@ -130,7 +130,9 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 - **`InputSystem.ts`**: `mergeInputState` — ogni tick `useGameLoop` unisce tastiera + touch (OR su left/right/fire).
 - **`useGameLoop.ts`**: attach/detach del touch insieme al ciclo di vita del gioco; cleanup su game over e unmount.
 - **`GameScreen.tsx`**: testo istruzioni touch nel pre-start; overlay pausa con pulsante **Resume** (oltre a P).
-- **Test Vitest:** `TouchInputSystem.test.ts` (mapping, hit zone, merge); ambiente `node` senza DOM reale.
+- **UI mobile (`pointer: coarse`)**: `useTouchUiMode` + `VirtualControlsOverlay` — anello **Move** e striscia **Cast** sovrapposti al canvas (solo a partita avviata, non in pausa); pulsante **Pause** in alto a destra; copy pre-start / pausa dedicati.
+- **`touchUiDetection.ts`**: `readCoarsePointerMode()` per test senza `renderHook`.
+- **Test Vitest:** `TouchInputSystem.test.ts` (mapping, hit zone, merge); `touchUiDetection.test.ts`; ambiente `node` senza DOM reale.
 
 ---
 
