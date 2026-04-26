@@ -46,6 +46,7 @@ client/
 │           ├── GameScreen.tsx
 │           └── GameOverScreen.tsx
 ├── index.html
+├── vercel.json          ← SPA rewrites for React Router on Vercel
 ├── vite.config.ts
 ├── tailwind.config.ts
 ├── postcss.config.js
@@ -64,6 +65,10 @@ npm run dev
 # Type-check + production build
 npm run build
 ```
+
+## Deploy on Vercel
+
+Set the Vercel project **Root Directory** to `client`, output **`dist`**, build `npm run build`. Keep **`vercel.json`** so `/game` and `/gameover` are rewritten to `index.html` (avoids 404 on client-side routes).
 
 ## Key Design Decisions
 

@@ -118,6 +118,8 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 
 **File principali:** `server/app.ts`, `server/__tests__/wave.test.ts`, `server/vitest.config.ts`, `client/src/game/__tests__/*.test.ts`, `.github/workflows/ci.yml`.
 
+**Vercel / 404 su route client:** senza rewrite, percorsi come `/game` non esistono come file in `dist/` → errore tipo `404 NOT_FOUND` (edge `fra1`). Aggiunto `client/vercel.json` con rewrite a `index.html` e documentazione deploy in README / AGENTS.
+
 ---
 
 ## TODO / Roadmap
