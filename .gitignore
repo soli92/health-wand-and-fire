@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment (keep .env.example tracked)
+.env
+.env.*.local
+
+# Logs and coverage
+*.log
+coverage/
+
+# Compiled JS emitted next to shared TS (do not commit)
+shared/*.js
+shared/*.js.map
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Vite
+client/dist/
