@@ -12,82 +12,111 @@ Memoria di sviluppo AI-assisted. Annotazioni su decisioni architetturali, patter
 - Frontend: React 18 + Vite 5 + TypeScript + `@soli92/solids` (tema `fantasy`)
 - Backend: Node.js + Express + TypeScript + Anthropic SDK
 - Shared: Zod schemas come unica fonte di verità per tipi condivisi
-- AI model: `claude-sonnet-4-5` (adattato da `claude-sonnet-4-20250514` del prompt originale)
+- AI model: `claude-sonnet-4-5`
 
 ---
 
 ## Fasi di sviluppo
 
-### Fase 1 — Scaffold iniziale · 2025
+### Fase 1 — Scaffold iniziale
 
 **Cosa è stato fatto:**
 - Creata repo GitHub `soli92/health-wand-and-fire`
-- Definiti tipi condivisi in `shared/types.ts` con Zod: `PlayerStatsSchema`, `WaveConfigSchema`, `GameState`
+- Definiti tipi condivisi in `shared/types.ts` con Zod
 - Backend Express con route `POST /api/next-wave` e servizio `aiAdapter.ts`
-- Frontend React con HTML Canvas game loop puro (nessun React state nel loop)
+- Game engine puro TS: `GameLoop`, `StatsTracker`, `Player` (Wizard), `Enemy` (DarkCreature), `Bullet` (Spell), `InputSystem`
 - Integrazione `@soli92/solids` con tema `fantasy` su `<body data-theme="fantasy">`
-- File `AGENTS.md` e `AI_LOG.md` inclusi per continuità AI-assisted
+- File `AGENTS.md` e `AI_LOG.md` inclusi
 
 **Decisioni chiave:**
 
 #### 1. Game loop puro JS, non React
 Il game state (Wizard, DarkCreatures, Spells) vive in un oggetto JS mutabile.
 React gestisce solo Menu, HUD (via `setInterval` su ref), GameOver.
-Motivazione: evitare re-render React ogni frame (60fps) — performance critica per un gioco.
+Motivazione: evitare re-render React ogni frame (60fps) — performance critica.
 
 #### 2. Shared types con Zod
-`shared/types.ts` è importato sia da client che server, garantendo type safety end-to-end senza duplicazione.
+`shared/types.ts` è importato sia da client che server, garantendo type safety end-to-end.
 Zod valida: request body del server, response JSON di Claude, prevenendo runtime crash.
 
 #### 3. Claude fallback hardcoded
-Se Claude risponde con JSON malformato o l'API è down, `aiAdapter.ts` ritorna una `WaveConfig` di fallback (media difficoltà).
+Se Claude risponde con JSON malformato o l'API è down, `aiAdapter.ts` ritorna una `WaveConfig` di fallback.
 Il gioco non si interrompe mai per un errore AI.
 
 #### 4. @soli92/solids: registry shadcn, non import diretto
-Dalla knowledge base: i componenti SoliDS seguono il **registry shadcn**. Quindi:
 - `import '@soli92/solids/dist/index.css'` per CSS e token
 - `import solidsPreset from '@soli92/solids/tailwind'` per il preset
 - Componenti (Button, Card, Badge) → `src/components/ui/` (registry locale shadcn)
 - ⚠️ NON `import { Button } from '@soli92/solids'`
 
-#### 5. Modello Claude adattato
-Il prompt originale specificava `claude-sonnet-4-20250514`. Adattato a `claude-sonnet-4-5` per allineamento con le convenzioni del progetto e disponibilità API attuale.
+#### 5. Modello Claude
+`claude-sonnet-4-5` — adattato da `claude-sonnet-4-20250514` del prompt originale.
 
 #### 6. AIDebugPanel solo in DEV
-Il pannello debug AI (WaveConfig JSON, commento Claude, loading state) è wrappato in `import.meta.env.DEV === true`. Non esposto in produzione.
+Wrappato in `import.meta.env.DEV === true`. Non esposto in produzione.
 
 ---
 
-## Pattern & Convenzioni emerse
+### Fase 2 — Completamento layer React + fix import paths
 
-### Canvas + CSS Custom Properties
+**Cosa è stato fatto:**
+
+#### File creati
+- `client/src/game/systems/CollisionSystem.ts` — AABB collision detection, restituisce `CollisionResult` con set di indici (no mutation diretta)
+- `client/src/game/systems/WaveSystem.ts` — spawning nemici da `WaveConfig` AI, gestione Health Potion, render canvas
+- `client/src/hooks/useGameLoop.ts` — hook React che orchestra tutti i subsistemi, starfield background
+- `client/src/hooks/useAIWave.ts` — fetch `POST /api/next-wave`, Zod parse response, fallback
+- `client/src/ui/screens/MenuScreen.tsx` — schermata titolo con controls reference e AI badge
+- `client/src/ui/screens/GameScreen.tsx` — canvas + HUD overlay + overlays (pause, AI loading, pre-start)
+- `client/src/ui/screens/GameOverScreen.tsx` — stats finali (score, wave), CTA retry/menu
+- `client/src/ui/hud/HUD.tsx` — lives (cuori), wave counter, score, AI loading bar animata
+- `client/src/ui/hud/AIDebugPanel.tsx` — pannello debug DEV con WaveConfig JSON + commento Claude
+- `client/src/components/ui/button.tsx` — Button shadcn/ui locale con varianti SoliDS
+- `client/src/components/ui/card.tsx` — Card, CardHeader, CardContent, CardFooter
+- `client/src/components/ui/badge.tsx` — Badge con varianti semantic
+- `client/public/favicon.svg` — wizard hat SVG inline
+- `.env.example` — template variabili d'ambiente
+
+#### Fix critici
+- **Import paths `shared/types`**: ogni file usa il path relativo corretto in base alla propria profondità nella cartella `client/src/`:
+  - `hooks/` → `../../../shared/types` (3 livelli)
+  - `ui/screens/` e `ui/hud/` → `../../../../shared/types` (4 livelli)
+  - `game/systems/` → `../../../../shared/types` (4 livelli)
+- **`GameScreen.tsx` troncato**: riscritto completo con AIDebugPanel correttamente wirato
+- **`index.css`**: aggiunto keyframe `@keyframes slide` per la loading bar HUD
+
+#### Pattern emersi
+
+**CollisionSystem con index sets**
 ```ts
-// Legge i colori del tema SoliDS dal DOM, non hardcoded
-const style = getComputedStyle(document.body)
-const primary = style.getPropertyValue('--color-primary').trim()
+// Usa Set<number> di indici invece di mutare gli array durante l'iterazione
+const col = runCollisions(wizard, wave.enemies, spellsRef.current)
+spellsRef.current = spellsRef.current.filter(
+  (_, i) => !col.playerSpellHits.has(i) && !col.enemySpellHits.has(i)
+)
 ```
 
-### Stats Snapshot al termine wave
-```
-Wave ends → StatsTracker.snapshot(wave) → useAIWave.fetchNextWave(stats) → WaveSystem.applyConfig(waveConfig)
+**WaveSystem: AI speed → px/sec**
+```ts
+speed: speed * 80  // AI range 0.5–3.0 → 40–240 px/sec
+hp: Math.max(1, Math.floor(speed))  // hp scale con difficoltà
 ```
 
-### Error handling API
-- Zod parse error → 400 Bad Request + messaggio dettagliato
-- Claude API error → 500 + fallback WaveConfig (non blocca il gioco)
-- Claude JSON malformato → parse + fallback WaveConfig
+**onWaveEnd inline in useGameLoop call**
+Per evitare il problema delle dependency stale di `applyNextWave`, la callback `onWaveEnd` è definita inline nel JSX che chiama `useGameLoop`, dove `applyNextWave` è già nel closure scope.
 
 ---
 
 ## TODO / Roadmap
 
-- [ ] Power-up rendering su canvas (Health Potion drop)
+- [ ] Touch controls per mobile (joystick virtuale canvas)
 - [ ] Sound effects con Web Audio API (tono fantasy)
 - [ ] Leaderboard con Supabase
 - [ ] Deploy: client su Vercel, server su Railway/Render
 - [ ] GitHub Actions CI (lint + typecheck)
-- [ ] Mobile responsive (touch controls per mobile)
 - [ ] Modalità difficoltà manuale (bypass AI director)
+- [ ] Animazioni particelle alla morte nemici
+- [ ] High score localStorage
 
 ---
 
