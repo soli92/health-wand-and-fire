@@ -7,6 +7,8 @@ import { useState, useCallback } from 'react'
 import { NextWaveResponseSchema } from '../../../shared/types'
 import type { PlayerStats, WaveConfig } from '../../../shared/types'
 
+// Path: client/src/hooks/ → ../../../shared/types
+
 export interface UseAIWaveResult {
   loading: boolean
   error: string | null
@@ -14,7 +16,7 @@ export interface UseAIWaveResult {
   fetchNextWave: (stats: PlayerStats) => Promise<WaveConfig | null>
 }
 
-/** Fallback config used when the API call fails */
+/** Fallback config used when the API call fails — keeps game playable */
 const FALLBACK_CONFIG: WaveConfig = {
   enemyCount: 8,
   speed: 1.5,
@@ -25,8 +27,8 @@ const FALLBACK_CONFIG: WaveConfig = {
 }
 
 export function useAIWave(): UseAIWaveResult {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState<string | null>(null)
   const [lastConfig, setLastConfig] = useState<WaveConfig | null>(null)
 
   const fetchNextWave = useCallback(async (stats: PlayerStats): Promise<WaveConfig | null> => {
@@ -56,12 +58,14 @@ export function useAIWave(): UseAIWaveResult {
 
       setLastConfig(parsed.data.wave)
       return parsed.data.wave
+
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error'
       console.error('[useAIWave] Fetch failed:', msg)
       setError(msg)
       setLastConfig(FALLBACK_CONFIG)
       return FALLBACK_CONFIG
+
     } finally {
       setLoading(false)
     }
