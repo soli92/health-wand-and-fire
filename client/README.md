@@ -19,7 +19,8 @@ Frontend React + Vite + TypeScript application for the **Health, Wand and Fire**
 ```
 client/
 ├── public/
-│   └── favicon.svg
+│   ├── brand/             ← favicon/logo/symbol/app-icon assets
+│   └── manifest.webmanifest
 ├── src/
 │   ├── components/
 │   │   └── ui/              ← shadcn/ui local registry (Button, Card, Badge)
@@ -74,6 +75,12 @@ npm run build
 ## Deploy on Vercel
 
 Set the Vercel project **Root Directory** to `client`, output **`dist`**, build `npm run build`. Keep **`vercel.json`** so `/game` and `/gameover` are rewritten to `index.html` (avoids 404 on client-side routes).
+
+If `npm run build` fails with `../shared/types.ts: Cannot find module 'zod'`, run:
+
+```bash
+npm install --prefix ../shared --no-audit --no-fund
+```
 
 ## Key Design Decisions
 

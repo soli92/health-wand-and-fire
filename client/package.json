@@ -12,7 +12,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@soli92/solids": "^1.7.0",
+    "@soli92/solids": "^1.14.1",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-router-dom": "^6.28.0",

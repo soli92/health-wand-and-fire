@@ -13,7 +13,7 @@ export default function GameOverScreen() {
   const wave = state.wave ?? 1
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8 p-6">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-background flex flex-col items-center justify-center gap-8 p-6">
       {/* Icon */}
       <div className="text-7xl animate-pulse">💀</div>
 

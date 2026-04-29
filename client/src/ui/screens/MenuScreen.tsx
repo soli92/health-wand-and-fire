@@ -1,13 +1,14 @@
+import SoliBrandLogo from '@/components/brand/SoliBrandLogo'
 import { useNavigate } from 'react-router-dom'
 
 export default function MenuScreen() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8 p-6">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-background flex flex-col items-center justify-center gap-8 p-6">
       {/* Title */}
       <div className="text-center space-y-3">
-        <div className="text-6xl">🧙‍♂️</div>
+        <SoliBrandLogo className="h-16 w-auto mx-auto" />
         <h1 className="text-4xl font-bold text-primary tracking-tight">
           Health, Wand &amp; Fire
         </h1>

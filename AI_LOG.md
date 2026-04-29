@@ -136,6 +136,37 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 
 ---
 
+### Fase 5 — Frontend migration hardening (brand + PWA + build/test unblock)
+
+**Cosa è stato fatto:**
+
+- Migrazione UI verso brand Soli nel client:
+  - aggiunto `AppHeader` globale (`client/src/components/brand/AppHeader.tsx`) e wiring in `client/src/App.tsx`
+  - sostituito iconografia emoji con `SoliBrandLogo` e `SoliLogoLoader` su Menu e AI loading overlay
+  - aggiornati layout verticali (`min-h-[calc(100vh-3.5rem)]`) per coerenza con header sticky
+- Migrazione asset web app:
+  - introdotti `client/public/brand/*` (favicon, logo, symbol, app icon, apple touch icon)
+  - aggiunto `client/public/manifest.webmanifest`
+  - aggiornato `client/index.html` con meta `theme-color`, OpenGraph, `manifest`, favicon brand e apple touch icon
+- Allineamento design system:
+  - `client/package.json` aggiornato a `@soli92/solids ^1.14.1`
+
+**Blocco rilevato e risoluzione:**
+
+- **Sintomo:** `npm test` in `client/` restava in hang iniziale con warning ESM/CJS.
+- **Causa principale nel client:** `postcss.config.js` usava `export default` in progetto non ESM.
+- **Fix:** conversione a CommonJS (`module.exports`) in `client/postcss.config.js`.
+- **Risultato:** Vitest torna stabile (`21/21` test passati).
+
+**Secondo blocco (linkage shared):**
+
+- **Sintomo:** `npm run build` client falliva con `../shared/types.ts: Cannot find module 'zod'`.
+- **Causa:** dipendenze `shared/` non installate localmente in quell’ambiente.
+- **Mitigazione operativa:** `npm install --prefix ../shared --no-audit --no-fund`, poi build OK.
+- **Nota:** il postinstall del client esegue già l’install in `shared`; il comando manuale resta fallback quando l’ambiente salta lo script.
+
+---
+
 ## TODO / Roadmap
 
 **Stato repo (ultima verifica codice):** tastiera + touch canvas (`InputSystem`, `TouchInputSystem`, merge in `useGameLoop`). Mancano ancora: audio Web, Supabase, `localStorage` high score, particelle a morte nemici, modalità manuale bypass AI. Il server espone CORS solo verso `http://localhost:5173` (`server/app.ts`) — va esteso per un client in produzione.

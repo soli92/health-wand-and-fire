@@ -3,7 +3,7 @@
 Riassunto operativo per **Health, Wand and Fire** — fantasy arcade shooter con AI director (Claude).
 Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 
-**Aggiornato:** 2026
+**Aggiornato:** 2026-04-29
 
 ---
 
@@ -24,13 +24,16 @@ Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 ### Frontend (`client/`)
 - **React 18** + **Vite 5** + **TypeScript**
 - **`@soli92/solids`** — Design System
+  - Versione attuale: `^1.14.1`
   - Importa CSS: `import '@soli92/solids/css/index.css'` (in `main.tsx`)
   - Preset Tailwind: `import solidsPreset from '@soli92/solids/tailwind-preset'`
   - Tema attivo: `data-theme="fantasy"` su `<body>`
   - ⚠️ I componenti UI (Button, Card, Badge…) vengono dal **registry shadcn** locale (`src/components/ui/`), **non** importati direttamente da `@soli92/solids`
+- Branding/PWA frontend: header brand (`AppHeader`), logo loader AI (`SoliLogoLoader`), manifest (`client/public/manifest.webmanifest`) e asset in `client/public/brand/*`
 - **Tailwind CSS v3** — usa token semantici: `bg-background`, `text-foreground`, `text-primary`, `border-primary`, `text-muted-foreground`, `bg-accent`
 - **react-router-dom v6** — Routes: `/` Menu | `/game` Game | `/gameover` GameOver
 - **Zod** — validazione schema condivisa con server
+- Config PostCSS client in formato CJS (`client/postcss.config.js` con `module.exports`) per compatibilità toolchain (Vite/Vitest con package non ESM)
 
 ### Backend (`server/`)
 - **Express 4** + **TypeScript** (tsx per dev, tsc per build)
@@ -136,6 +139,10 @@ cd client && npm run dev        # porta 5173
 
 # Build
 cd server && npm run build
+cd client && npm run build
+
+# Se build client fallisce su "Cannot find module 'zod'" da shared/types.ts
+npm install --prefix shared --no-audit --no-fund
 cd client && npm run build
 
 # Test
