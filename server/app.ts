@@ -12,9 +12,15 @@ export function createApp(options?: {
 
   const app = express();
 
+  const corsOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:5173")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+
   app.use(
     cors({
-      origin: "http://localhost:5173",
+      origin:
+        corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
       methods: ["GET", "POST", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
     })

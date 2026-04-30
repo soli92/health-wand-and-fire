@@ -54,7 +54,8 @@ class AiAdapter {
    * WaveConfig for the next wave. Falls back to FALLBACK_WAVE on any error.
    */
   async getNextWave(stats: NextWaveRequest): Promise<WaveConfig> {
-    const userMessage = JSON.stringify(stats, null, 2);
+    // Inner stats object matches the system prompt ("player's stats"); avoids redundant nesting for the model.
+    const userMessage = JSON.stringify(stats.stats, null, 2);
 
     try {
       const response = await this.client.messages.create({
@@ -105,9 +106,8 @@ class AiAdapter {
 
       return validated.data;
     } catch (err) {
-      console.error("[AiAdapter] Claude API error:", err);
-      // Re-throw so the route handler can respond with 500
-      throw err;
+      console.warn("[AiAdapter] Claude API error — using fallback wave:", err);
+      return FALLBACK_WAVE;
     }
   }
 }
