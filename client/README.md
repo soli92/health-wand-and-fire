@@ -47,7 +47,8 @@ client/
 │       │   ├── HUD.tsx
 │       │   └── AIDebugPanel.tsx  ← DEV only
 │       ├── overlays/
-│       │   └── VirtualControlsOverlay.tsx  ← Move/Cast hints (coarse pointer)
+│       │   ├── VirtualControlsOverlay.tsx
+│       │   └── TouchControlsSettingsPanel.tsx
 │       └── screens/
 │           ├── MenuScreen.tsx
 │           ├── GameScreen.tsx
@@ -90,4 +91,4 @@ npm install --prefix ../shared --no-audit --no-fund
 - **AI wave generation** includes graceful fallback: if `/api/next-wave` is unavailable, a deterministic local config is used
 - **Theme-aware canvas colors** — reads `--color-primary` / `--color-destructive` CSS custom properties at render time
 - **`@soli92/solids`** provides only CSS tokens + Tailwind preset; UI components are local shadcn/ui registry copies under `src/components/ui`
-- **Touch** — `TouchInputSystem` on the canvas (bottom-left stick, bottom bar for fire); merged each frame with keyboard via `mergeInputState` in `useGameLoop`. When `matchMedia('(pointer: coarse)')` matches, `VirtualControlsOverlay` + **Pause** button keep controls discoverable (`useTouchUiMode`).
+- **Touch** — `TouchInputSystem` + `mergeInputState`; layout da `touchControlSettings` (localStorage). In pausa (coarse pointer): pannello **Touch controls** per posizione/trasparenza/Pause. Viewport: zoom disabilitato su mobile.

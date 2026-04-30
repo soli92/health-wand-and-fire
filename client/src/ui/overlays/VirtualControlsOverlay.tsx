@@ -1,74 +1,101 @@
 /**
- * On-canvas hints for virtual controls (pointer: coarse). pointer-events: none so touches reach the canvas.
- * Geometry matches TouchInputSystem TOUCH_DEFAULTS.
+ * Visual hints for virtual controls. pointer-events: none.
+ * Positions use % of the playfield (same aspect as logical 480×640) so scaling stays aligned.
  */
 
-import { TOUCH_DEFAULTS } from '../../game/systems/TouchInputSystem'
+import {
+  CANVAS_LOGICAL_HEIGHT,
+  CANVAS_LOGICAL_WIDTH,
+} from '../../game/canvasDimensions'
+import type { TouchControlSettings } from '../../game/touchControlSettings'
+import { touchSettingsToInputOpts } from '../../game/touchControlSettings'
 
-const { canvasH, fireZoneH, stickCx, stickCy, stickRadius } = TOUCH_DEFAULTS
+interface VirtualControlsOverlayProps {
+  settings: TouchControlSettings
+}
 
-export default function VirtualControlsOverlay() {
-  const stripTop = canvasH - fireZoneH
-  /** Circle center relative to the bottom strip box (top = stripTop). */
-  const holeCx = stickCx
-  const holeCy = stickCy - stripTop
+const W = CANVAS_LOGICAL_WIDTH
+const H = CANVAS_LOGICAL_HEIGHT
 
-  const fireMask = `radial-gradient(circle ${stickRadius}px at ${holeCx}px ${holeCy}px, transparent 99.5%, black 100%)`
+export default function VirtualControlsOverlay({ settings }: VirtualControlsOverlayProps) {
+  const { fireZoneH, stickCx, stickCy, stickRadius } = touchSettingsToInputOpts(settings)
+  const stripTop = H - fireZoneH
+  const hintOpacity = 0.2 + settings.overlayOpacity * 0.75
+
+  const ringL = ((stickCx - stickRadius) / W) * 100
+  const ringT = ((stickCy - stickRadius) / H) * 100
+  const ringW = ((2 * stickRadius) / W) * 100
+  const ringH = ((2 * stickRadius) / H) * 100
+
+  const stripTopPct = (stripTop / H) * 100
+  const stripHPct = (fireZoneH / H) * 100
+
+  const fireLeftW = Math.max(0, (stickCx - stickRadius) / W) * 100
+  const fireRightL = ((stickCx + stickRadius) / W) * 100
+  const fireRightW = Math.max(0, (W - stickCx - stickRadius) / W) * 100
 
   return (
     <div
       className="pointer-events-none absolute inset-0 z-[5] select-none"
       aria-hidden="true"
     >
-      {/* Joystick zone */}
-      <div
-        className="absolute rounded-full border-2 border-primary/55 bg-primary/10 shadow-[inset_0_0_12px_rgba(0,0,0,0.25)]"
-        style={{
-          left: stickCx - stickRadius,
-          top: stickCy - stickRadius,
-          width: stickRadius * 2,
-          height: stickRadius * 2,
-        }}
-      />
-      <span
-        className="absolute text-[10px] font-semibold uppercase tracking-wide text-primary/90 drop-shadow-sm"
-        style={{
-          left: stickCx - stickRadius,
-          top: stickCy - stickRadius - 18,
-          width: stickRadius * 2,
-          textAlign: 'center',
-        }}
-      >
-        Move
-      </span>
+      <div className="absolute inset-0" style={{ opacity: hintOpacity }}>
+        <div
+          className="absolute rounded-full border-2 border-primary/60 bg-primary/15 shadow-[inset_0_0_12px_rgba(0,0,0,0.25)]"
+          style={{
+            left: `${ringL}%`,
+            top: `${ringT}%`,
+            width: `${ringW}%`,
+            height: `${ringH}%`,
+          }}
+        />
+        <span
+          className="absolute text-[10px] font-semibold uppercase tracking-wide text-primary drop-shadow-sm"
+          style={{
+            left: `${ringL}%`,
+            top: `${Math.max(0, (stickCy - stickRadius - 18) / H) * 100}%`,
+            width: `${ringW}%`,
+            textAlign: 'center',
+          }}
+        >
+          Move
+        </span>
 
-      {/* Fire strip (bottom bar with hole over joystick) */}
-      <div
-        className="absolute left-0 right-0 border-t border-primary/40 bg-primary/12"
-        style={{
-          top: stripTop,
-          height: fireZoneH,
-          WebkitMaskImage: fireMask,
-          maskImage: fireMask,
-        }}
-      />
-      <span
-        className="absolute text-[10px] font-semibold uppercase tracking-wide text-primary/90 drop-shadow-sm"
-        style={{
-          right: 12,
-          bottom: 10,
-        }}
-      >
-        Cast
-      </span>
+        <div
+          className="absolute left-0 border-t border-primary/40 bg-primary/12"
+          style={{
+            top: `${stripTopPct}%`,
+            height: `${stripHPct}%`,
+            width: `${fireLeftW}%`,
+          }}
+        />
+        <div
+          className="absolute border-t border-primary/40 bg-primary/12"
+          style={{
+            left: `${fireRightL}%`,
+            top: `${stripTopPct}%`,
+            height: `${stripHPct}%`,
+            width: `${fireRightW}%`,
+          }}
+        />
 
-      {/* Help line — inside canvas footprint */}
-      <p
-        className="absolute left-0 right-0 text-center text-[9px] leading-tight text-muted-foreground/90 px-3"
-        style={{ top: stripTop - 22 }}
-      >
-        Drag the ring to move · Tap the shaded bar to cast spells
-      </p>
+        <span
+          className="absolute text-[10px] font-semibold uppercase tracking-wide text-primary drop-shadow-sm"
+          style={{
+            right: '2.5%',
+            bottom: `${(10 / H) * 100}%`,
+          }}
+        >
+          Cast
+        </span>
+
+        <p
+          className="absolute left-0 right-0 text-center text-[9px] leading-tight text-muted-foreground px-[2%]"
+          style={{ top: `${((stripTop - 22) / H) * 100}%` }}
+        >
+          Drag the ring to move · Tap the shaded areas to cast spells
+        </p>
+      </div>
     </div>
   )
 }
