@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import { useGameLoop } from '../../hooks/useGameLoop'
 import { useAIWave } from '../../hooks/useAIWave'
 import { useTouchUiMode } from '../../hooks/useTouchUiMode'
+import SoliLogoLoader from '@/components/brand/SoliLogoLoader'
 import HUD from '../hud/HUD'
 import AIDebugPanel from '../hud/AIDebugPanel'
 import VirtualControlsOverlay from '../overlays/VirtualControlsOverlay'
@@ -122,7 +123,7 @@ export default function GameScreen() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="game-screen min-h-[100dvh] min-h-screen w-full bg-background flex flex-col items-center justify-center px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <div className="game-screen flex w-full min-h-[calc(100dvh-3.5rem)] min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center bg-background px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))]">
 
       {/* Game viewport — scales to fit narrow phones in portrait */}
       <div
@@ -180,7 +181,7 @@ export default function GameScreen() {
         {/* AI between-waves overlay */}
         {loading && !hudState.paused && (
           <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-20 pointer-events-none">
-            <div className="text-4xl animate-spin">✨</div>
+            <SoliLogoLoader />
             <p className="text-primary font-semibold text-center px-6">
               The AI Director prepares the next Omen Wave…
             </p>

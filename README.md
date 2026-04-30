@@ -46,6 +46,15 @@ health-wand-and-fire/
 | AI        | Anthropic Claude (`claude-sonnet-4-5`) via `@anthropic-ai/sdk` |
 | Validation | Zod (shared schemas) |
 
+### Frontend migration status (Apr 2026)
+
+- `client` migrated to Soli brand assets and app shell:
+  - sticky top header (`AppHeader`)
+  - logo-based loaders (`SoliLogoLoader`) and menu branding (`SoliBrandLogo`)
+  - full PWA metadata (`manifest.webmanifest`, favicon/OG/apple-touch in `index.html`)
+- SoliDS dependency on client aligned to `@soli92/solids ^1.14.1`.
+- PostCSS config is CJS (`module.exports`) to avoid Vite/Vitest hangs caused by ESM syntax in a non-ESM package.
+
 ---
 
 ## 🚀 Getting Started
@@ -72,6 +81,10 @@ cd server && npm install
 
 # Client (postinstall installs ../shared — required for TypeScript)
 cd ../client && npm install
+
+# Optional safety step if client build reports
+# "../shared/types.ts: Cannot find module 'zod'"
+npm install --prefix ../shared --no-audit --no-fund
 ```
 
 ### 3. Run (two terminals)
