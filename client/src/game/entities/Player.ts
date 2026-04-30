@@ -5,6 +5,10 @@
 
 import { Spell, type Bullet } from './Bullet'
 import type { InputState } from '../systems/InputSystem'
+import {
+  CANVAS_LOGICAL_HEIGHT,
+  CANVAS_LOGICAL_WIDTH,
+} from '../canvasDimensions'
 
 const PLAYER_SPEED = 280         // px/sec
 const SPELL_COOLDOWN_MS = 300    // minimum ms between shots
@@ -33,8 +37,8 @@ export class Wizard {
   private invincibleMs: number = 0  // brief invincibility after taking damage
 
   constructor(opts: WizardOptions = {}) {
-    this.canvasWidth = opts.canvasWidth ?? 480
-    this.canvasHeight = opts.canvasHeight ?? 640
+    this.canvasWidth = opts.canvasWidth ?? CANVAS_LOGICAL_WIDTH
+    this.canvasHeight = opts.canvasHeight ?? CANVAS_LOGICAL_HEIGHT
     this.x = opts.x ?? this.canvasWidth / 2 - this.width / 2
     this.y = opts.y ?? this.canvasHeight - this.height - 16
   }

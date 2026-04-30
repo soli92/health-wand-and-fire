@@ -25,6 +25,7 @@ client/
 │   ├── components/
 │   │   └── ui/              ← shadcn/ui local registry (Button, Card, Badge)
 │   ├── game/
+│   │   ├── canvasDimensions.ts  ← CANVAS_LOGICAL_WIDTH / HEIGHT (480×640)
 │   │   ├── GameLoop.ts      ← Fixed-timestep RAF loop
 │   │   ├── StatsTracker.ts  ← Per-wave performance metrics
 │   │   ├── entities/

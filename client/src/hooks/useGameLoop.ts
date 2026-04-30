@@ -13,6 +13,10 @@ import { TouchInputSystem } from '../game/systems/TouchInputSystem'
 import { WaveSystem } from '../game/systems/WaveSystem'
 import { StatsTracker } from '../game/StatsTracker'
 import { runCollisions } from '../game/systems/CollisionSystem'
+import {
+  CANVAS_LOGICAL_HEIGHT,
+  CANVAS_LOGICAL_WIDTH,
+} from '../game/canvasDimensions'
 import type { WaveConfig, GameState } from '../../../shared/types'
 
 // Path: client/src/hooks/ → ../../../shared/types
@@ -25,8 +29,8 @@ export interface UseGameLoopOptions {
   onGameOver: (finalScore: number) => void
 }
 
-const CANVAS_W = 480
-const CANVAS_H = 640
+const CANVAS_W = CANVAS_LOGICAL_WIDTH
+const CANVAS_H = CANVAS_LOGICAL_HEIGHT
 const STARS_COUNT = 70
 
 interface Star { x: number; y: number; r: number; speed: number }

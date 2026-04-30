@@ -105,6 +105,8 @@ On the game canvas (after **Begin the Omen**): drag in the **bottom-left** circu
 
 On **coarse pointers** (typical phones), the game draws a visible **Move** ring and **Cast** bar over the canvas (same geometry as the hit zones), plus a **Pause** control; touches still hit the canvas underneath.
 
+In **portrait**, the playfield scales to fit the screen width (minus safe-area insets); the internal resolution stays 480×640 so physics and touch mapping stay aligned.
+
 ---
 
 ## 🧪 Tests
@@ -218,7 +220,7 @@ Invalid `POST /api/next-wave` bodies return **400** with Zod field errors. The r
 | `client/src/game/GameLoop.ts` | rAF game loop, pure JS |
 | `client/src/game/StatsTracker.ts` | Collects per-wave player stats |
 | `client/src/hooks/useAIWave.ts` | React hook → AI wave fetch |
-| `client/src/game/systems/TouchInputSystem.ts` | Pointer-based virtual joystick + fire zone on canvas |
+| `client/src/game/canvasDimensions.ts` | Logical canvas size (480×640) shared by engine + UI scaling |
 | `client/src/ui/overlays/VirtualControlsOverlay.tsx` | Visible Move/Cast hints when `(pointer: coarse)` |
 | `client/src/ui/hud/AIDebugPanel.tsx` | Dev-only AI inspector |
 | `client/vercel.json` | SPA rewrites for React Router on Vercel |

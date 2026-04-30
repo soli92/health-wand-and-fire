@@ -4,6 +4,7 @@
  */
 
 import { Spell, type Bullet } from './Bullet'
+import { CANVAS_LOGICAL_WIDTH } from '../canvasDimensions'
 
 export type EnemyPattern = 'linear' | 'zigzag' | 'dive' | 'hover'
 
@@ -55,7 +56,7 @@ export class DarkCreature {
     this.hp = opts.hp ?? 1
     this.pattern = opts.pattern ?? 'linear'
     this.shootFrequency = opts.shootFrequency ?? 0
-    this.canvasWidth = opts.canvasWidth ?? 480
+    this.canvasWidth = opts.canvasWidth ?? CANVAS_LOGICAL_WIDTH
     this.diveTarget = this.y + 60 + Math.random() * 80
   }
 

@@ -7,7 +7,7 @@
  * (screens → ui → src → client → root → shared/types)
  */
 
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameLoop } from '../../hooks/useGameLoop'
 import { useAIWave } from '../../hooks/useAIWave'
@@ -16,11 +16,24 @@ import SoliLogoLoader from '@/components/brand/SoliLogoLoader'
 import HUD from '../hud/HUD'
 import AIDebugPanel from '../hud/AIDebugPanel'
 import VirtualControlsOverlay from '../overlays/VirtualControlsOverlay'
+import {
+  CANVAS_LOGICAL_HEIGHT,
+  CANVAS_LOGICAL_WIDTH,
+} from '../../game/canvasDimensions'
 import type { GameState } from '../../../../shared/types'
 import type { StatsTracker } from '../../game/StatsTracker'
 
-const CANVAS_W = 480
-const CANVAS_H = 640
+const CANVAS_W = CANVAS_LOGICAL_WIDTH
+const CANVAS_H = CANVAS_LOGICAL_HEIGHT
+
+/** Portrait: width-limited; landscape: height-limited. Keeps 480×640 playfield inside safe area. */
+const gameViewportStyle: CSSProperties = {
+  aspectRatio: `${CANVAS_W} / ${CANVAS_H}`,
+  width:
+    'min(calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 16px), calc((100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 16px) * 480 / 640))',
+  height: 'auto',
+  maxWidth: '100%',
+}
 
 const INITIAL_STATE: GameState = {
   running: false,
@@ -110,19 +123,19 @@ export default function GameScreen() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-background flex flex-col items-center justify-center">
+    <div className="game-screen flex w-full min-h-[calc(100dvh-3.5rem)] min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center bg-background px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))]">
 
-      {/* Fixed-size game viewport */}
+      {/* Game viewport — scales to fit narrow phones in portrait */}
       <div
-        className="relative bg-black rounded-xl overflow-hidden shadow-2xl shadow-primary/20 border border-border"
-        style={{ width: CANVAS_W, height: CANVAS_H }}
+        className="relative w-full max-w-full bg-black rounded-xl overflow-hidden shadow-2xl shadow-primary/20 border border-border"
+        style={gameViewportStyle}
       >
         {/* Game canvas */}
         <canvas
           ref={canvasRef}
           width={CANVAS_W}
           height={CANVAS_H}
-          className="block"
+          className="block h-full w-full max-h-full max-w-full"
           aria-label="Health, Wand and Fire — game canvas"
         />
 
