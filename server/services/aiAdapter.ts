@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { WaveConfig, WaveConfigSchema, NextWaveRequest } from "../../shared/types";
+import { WaveConfig, NextWaveRequest } from "../../shared/types";
+import { parseWaveConfigFromModelText } from "./parseWaveConfigFromModel";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -79,32 +80,17 @@ class AiAdapter {
 
       const rawText = firstBlock.text.trim();
 
-      // Parse JSON and validate with Zod schema
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(rawText);
-      } catch (jsonErr) {
+      const wave = parseWaveConfigFromModelText(rawText);
+      if (!wave) {
         console.warn(
-          "[AiAdapter] JSON parse failed:",
-          jsonErr,
-          "| Raw:",
+          "[AiAdapter] Could not parse model output as WaveConfig | Raw:",
           rawText,
           "— using fallback"
         );
         return FALLBACK_WAVE;
       }
 
-      const validated = WaveConfigSchema.safeParse(parsed);
-      if (!validated.success) {
-        console.warn(
-          "[AiAdapter] Schema validation failed:",
-          validated.error.flatten(),
-          "— using fallback"
-        );
-        return FALLBACK_WAVE;
-      }
-
-      return validated.data;
+      return wave;
     } catch (err) {
       console.warn("[AiAdapter] Claude API error — using fallback wave:", err);
       return FALLBACK_WAVE;

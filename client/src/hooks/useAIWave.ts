@@ -6,8 +6,14 @@
 import { useState, useCallback } from 'react'
 import { NextWaveResponseSchema } from '../../../shared/types'
 import type { PlayerStats, WaveConfig } from '../../../shared/types'
+import { resolveNextWaveApiUrl } from './nextWaveApiUrl'
 
 // Path: client/src/hooks/ → ../../../shared/types
+
+/** POST target for next-wave; uses VITE_API_BASE_URL in production when API is not same-origin. */
+export function getNextWaveApiUrl(): string {
+  return resolveNextWaveApiUrl(import.meta.env.VITE_API_BASE_URL)
+}
 
 export interface UseAIWaveResult {
   loading: boolean
@@ -36,7 +42,7 @@ export function useAIWave(): UseAIWaveResult {
     setError(null)
 
     try {
-      const res = await fetch('/api/next-wave', {
+      const res = await fetch(getNextWaveApiUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stats }),
