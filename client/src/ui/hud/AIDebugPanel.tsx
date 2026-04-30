@@ -6,6 +6,7 @@
  */
 
 import type { WaveConfig } from '../../../../shared/types'
+import { getNextWaveApiUrl } from '../../hooks/useAIWave'
 
 interface AIDebugPanelProps {
   config: WaveConfig | null
@@ -30,6 +31,9 @@ export default function AIDebugPanel({ config, loading, error }: AIDebugPanelPro
 
       {/* Body */}
       <div className="p-3 space-y-2">
+        <p className="text-muted-foreground text-[10px] break-all border-b border-border/50 pb-2">
+          POST {getNextWaveApiUrl()}
+        </p>
         {error && (
           <div className="text-destructive bg-destructive/10 rounded px-2 py-1 text-[11px]">
             ⚠ {error}
