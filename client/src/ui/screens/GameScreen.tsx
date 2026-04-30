@@ -16,10 +16,16 @@ import SoliLogoLoader from '@/components/brand/SoliLogoLoader'
 import HUD from '../hud/HUD'
 import AIDebugPanel from '../hud/AIDebugPanel'
 import VirtualControlsOverlay from '../overlays/VirtualControlsOverlay'
+import TouchControlsSettingsPanel from '../overlays/TouchControlsSettingsPanel'
 import {
   CANVAS_LOGICAL_HEIGHT,
   CANVAS_LOGICAL_WIDTH,
 } from '../../game/canvasDimensions'
+import {
+  loadTouchControlSettings,
+  saveTouchControlSettings,
+  type TouchControlSettings,
+} from '../../game/touchControlSettings'
 import type { GameState } from '../../../../shared/types'
 import type { StatsTracker } from '../../game/StatsTracker'
 
@@ -47,13 +53,21 @@ const INITIAL_STATE: GameState = {
 export default function GameScreen() {
   const navigate = useNavigate()
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const touchConfigRef = useRef<TouchControlSettings>(loadTouchControlSettings())
 
   // HUD state — updated via setInterval, NOT per-frame
   const [hudState, setHudState] = useState<GameState>(INITIAL_STATE)
   const [started, setStarted]   = useState(false)
+  const [touchSettings, setTouchSettings] = useState<TouchControlSettings>(() => loadTouchControlSettings())
+  const [touchDraft, setTouchDraft] = useState<TouchControlSettings>(() => loadTouchControlSettings())
+  const wasPausedRef = useRef(false)
 
   const { loading, error, lastConfig, fetchNextWave } = useAIWave()
   const touchUiMode = useTouchUiMode()
+
+  useEffect(() => {
+    touchConfigRef.current = touchSettings
+  }, [touchSettings])
 
   // ── Callbacks ─────────────────────────────────────────────────────────────
 
@@ -72,9 +86,10 @@ export default function GameScreen() {
 
   // ── Game loop hook (must be defined before handleWaveEnd uses applyNextWave) ─
 
-  const { startGame, applyNextWave, pauseGame, resumeGame, gameStateRef } =
+  const { startGame, applyNextWave, pauseGame, resumeGame, applyTouchLayout, gameStateRef } =
     useGameLoop({
       canvasRef,
+      touchConfigRef,
       onGameStateChange: handleGameStateChange,
       onWaveEnd: async (snapshot: ReturnType<StatsTracker['snapshot']>) => {
         const playerStats = {
@@ -120,6 +135,25 @@ export default function GameScreen() {
     return () => window.removeEventListener('keydown', onKey)
   }, [pauseGame, resumeGame, gameStateRef])
 
+  // When pausing on touch UI, open draft editor from last applied layout
+  useEffect(() => {
+    if (touchUiMode && hudState.paused && !wasPausedRef.current) {
+      setTouchDraft(touchSettings)
+    }
+    wasPausedRef.current = hudState.paused
+  }, [touchUiMode, hudState.paused, touchSettings])
+
+  const handleTouchApply = useCallback(() => {
+    saveTouchControlSettings(touchDraft)
+    setTouchSettings(touchDraft)
+    touchConfigRef.current = touchDraft
+    applyTouchLayout()
+  }, [touchDraft, applyTouchLayout])
+
+  const handleTouchRevert = useCallback(() => {
+    setTouchDraft(touchSettings)
+  }, [touchSettings])
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -147,7 +181,11 @@ export default function GameScreen() {
           <button
             type="button"
             onClick={pauseGame}
-            className="absolute right-2 top-10 z-[15] rounded-md border border-border bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-md backdrop-blur-sm active:scale-95"
+            className="absolute z-[15] rounded-md border border-border bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-md backdrop-blur-sm active:scale-95"
+            style={{
+              top: `${(touchSettings.pauseInsetTop / CANVAS_H) * 100}%`,
+              right: `${(touchSettings.pauseInsetRight / CANVAS_W) * 100}%`,
+            }}
             aria-label="Pause game"
           >
             Pause
@@ -156,22 +194,30 @@ export default function GameScreen() {
 
         {/* Virtual control zones — visible on coarse pointers (typical mobile) */}
         {started && touchUiMode && hudState.running && !hudState.paused && (
-          <VirtualControlsOverlay />
+          <VirtualControlsOverlay settings={touchSettings} />
         )}
 
         {/* Pause overlay */}
         {hudState.paused && (
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-20">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-background/80 px-2 py-4 backdrop-blur-sm">
             <p className="text-3xl font-bold text-primary">⏸ Paused</p>
             <p className="text-muted-foreground text-sm text-center px-4">
               {touchUiMode
-                ? 'Tap Resume below. On the canvas: drag the Move ring and tap the Cast strip to play.'
+                ? 'Adjust controls below, then Apply & save. Drag the Move ring and tap the Cast areas on the canvas.'
                 : 'Press P to resume'}
             </p>
+            {touchUiMode && (
+              <TouchControlsSettingsPanel
+                value={touchDraft}
+                onChange={setTouchDraft}
+                onApply={handleTouchApply}
+                onReset={handleTouchRevert}
+              />
+            )}
             <button
               type="button"
               onClick={resumeGame}
-              className="mt-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-lg"
+              className="mt-1 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-lg"
             >
               Resume
             </button>
@@ -205,11 +251,10 @@ export default function GameScreen() {
                 <>
                   <p className="text-primary/90 font-medium text-[13px]">On-screen controls</p>
                   <p className="text-[11px] leading-relaxed">
-                    After you begin, you will see a <strong className="text-foreground">Move</strong> ring
-                    bottom-left and a shaded <strong className="text-foreground">Cast</strong> strip along
-                    the bottom edge. Drag inside the ring to strafe; tap the strip (outside the ring) to
-                    fire. Use the <strong className="text-foreground">Pause</strong> button (top-right) to
-                    stop, then <strong className="text-foreground">Resume</strong> here.
+                    After you begin, use the <strong className="text-foreground">Move</strong> ring and{' '}
+                    <strong className="text-foreground">Cast</strong> zones on the canvas. Open{' '}
+                    <strong className="text-foreground">Pause</strong> anytime to change position, size, and
+                    transparency — settings are saved on this device.
                   </p>
                 </>
               ) : (

@@ -17,6 +17,10 @@ import {
   CANVAS_LOGICAL_HEIGHT,
   CANVAS_LOGICAL_WIDTH,
 } from '../game/canvasDimensions'
+import {
+  touchSettingsToInputOpts,
+  type TouchControlSettings,
+} from '../game/touchControlSettings'
 import type { WaveConfig, GameState } from '../../../shared/types'
 
 // Path: client/src/hooks/ → ../../../shared/types
@@ -24,6 +28,8 @@ import type { WaveConfig, GameState } from '../../../shared/types'
 
 export interface UseGameLoopOptions {
   canvasRef: React.RefObject<HTMLCanvasElement>
+  /** Latest touch layout; read when starting the loop; call applyTouchLayout after edits. */
+  touchConfigRef: React.MutableRefObject<TouchControlSettings>
   onGameStateChange: (state: GameState) => void
   onWaveEnd: (stats: ReturnType<StatsTracker['snapshot']>) => void
   onGameOver: (finalScore: number) => void
@@ -37,6 +43,7 @@ interface Star { x: number; y: number; r: number; speed: number }
 
 export function useGameLoop({
   canvasRef,
+  touchConfigRef,
   onGameStateChange,
   onWaveEnd,
   onGameOver,
@@ -114,7 +121,8 @@ export function useGameLoop({
 
     initStars()
     input.startListening()
-    const touch = new TouchInputSystem({ canvasW: CANVAS_W, canvasH: CANVAS_H })
+    const touchOpts = touchSettingsToInputOpts(touchConfigRef.current)
+    const touch = new TouchInputSystem(touchOpts)
     touch.attach(canvas)
     touchRef.current = touch
     wave.startDefaultWave()
@@ -213,7 +221,12 @@ export function useGameLoop({
 
     loop.start()
     onGameStateChange({ ...gameStateRef.current })
-  }, [canvasRef, initStars, renderStars, onGameStateChange, onWaveEnd, onGameOver])
+  }, [canvasRef, touchConfigRef, initStars, renderStars, onGameStateChange, onWaveEnd, onGameOver])
+
+  const applyTouchLayout = useCallback(() => {
+    const opts = touchSettingsToInputOpts(touchConfigRef.current)
+    touchRef.current?.applyLayout(opts)
+  }, [touchConfigRef])
 
   /** Called by React when AI returns the next wave config */
   const applyNextWave = useCallback((config: WaveConfig) => {
@@ -246,5 +259,5 @@ export function useGameLoop({
     }
   }, [])
 
-  return { startGame, applyNextWave, pauseGame, resumeGame, gameStateRef }
+  return { startGame, applyNextWave, pauseGame, resumeGame, applyTouchLayout, gameStateRef }
 }

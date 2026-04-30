@@ -101,9 +101,11 @@ Open → **http://localhost:5173**
 
 ### Touch devices
 
-On the game canvas (after **Begin the Omen**): drag in the **bottom-left** circular area to move; tap the **bottom edge** on the **right** side (outside that circle) to cast spells. Keyboard (**A/D**, **Space**) still works on desktop. While paused, use **P** or the **Resume** button.
+Pinch zoom on the game page is **disabled** via the HTML viewport (`maximum-scale=1`, `user-scalable=no`) so gameplay is not interrupted by accidental browser zoom.
 
-On **coarse pointers** (typical phones), the game draws a visible **Move** ring and **Cast** bar over the canvas (same geometry as the hit zones), plus a **Pause** control; touches still hit the canvas underneath.
+On the game canvas (after **Begin the Omen**): drag in the **Move** ring to strafe; tap the **Cast** regions along the bottom (left and right of the ring) to fire. Keyboard (**A/D**, **Space**) still works on desktop. **Pause** opens the pause menu; on coarse pointers you can **adjust control positions, sizes, hint transparency, and Pause button placement**, then **Apply & save** (stored in `localStorage` on the device).
+
+On **coarse pointers** (typical phones), visible hints match the hit zones; touches still hit the canvas underneath.
 
 In **portrait**, the playfield scales to fit the screen width (minus safe-area insets); the internal resolution stays 480×640 so physics and touch mapping stay aligned.
 
@@ -118,7 +120,7 @@ cd client && npm test
 cd server && npm test
 ```
 
-- **Client:** `src/game/__tests__/**/*.test.ts`, `src/hooks/__tests__/**/*.test.ts` — shared Zod schemas, `StatsTracker`, `CollisionSystem`, touch input (`TouchInputSystem`), coarse-pointer detection (`touchUiDetection`).
+- **Client:** `src/game/__tests__/**/*.test.ts`, `src/hooks/__tests__/**/*.test.ts` — shared Zod schemas, `StatsTracker`, `CollisionSystem`, touch input (`TouchInputSystem`, `touchControlSettings`), coarse-pointer detection (`touchUiDetection`).
 - **Server:** `server/__tests__/**/*.test.ts` — HTTP contract for `/api/next-wave` and `/health` with a mock `getNextWave` (no API key required).
 
 On push and pull requests to `main`, GitHub Actions runs `npm ci`, tests, and production builds for both workspaces.
@@ -220,7 +222,7 @@ Invalid `POST /api/next-wave` bodies return **400** with Zod field errors. The r
 | `client/src/game/GameLoop.ts` | rAF game loop, pure JS |
 | `client/src/game/StatsTracker.ts` | Collects per-wave player stats |
 | `client/src/hooks/useAIWave.ts` | React hook → AI wave fetch |
-| `client/src/game/canvasDimensions.ts` | Logical canvas size (480×640) shared by engine + UI scaling |
+| `client/src/game/touchControlSettings.ts` | Persisted touch layout + `touchSettingsToInputOpts` for engine/UI |
 | `client/src/ui/overlays/VirtualControlsOverlay.tsx` | Visible Move/Cast hints when `(pointer: coarse)` |
 | `client/src/ui/hud/AIDebugPanel.tsx` | Dev-only AI inspector |
 | `client/vercel.json` | SPA rewrites for React Router on Vercel |

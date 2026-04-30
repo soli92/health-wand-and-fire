@@ -10,7 +10,17 @@ import {
   CANVAS_LOGICAL_WIDTH,
 } from '../canvasDimensions'
 
-export const TOUCH_DEFAULTS = {
+export type TouchLayoutOptions = {
+  canvasW: number
+  canvasH: number
+  fireZoneH: number
+  stickCx: number
+  stickCy: number
+  stickRadius: number
+  stickDead: number
+}
+
+export const TOUCH_DEFAULTS: TouchLayoutOptions = {
   canvasW: CANVAS_LOGICAL_WIDTH,
   canvasH: CANVAS_LOGICAL_HEIGHT,
   fireZoneH: 96,
@@ -18,7 +28,7 @@ export const TOUCH_DEFAULTS = {
   stickCy: CANVAS_LOGICAL_HEIGHT - 76,
   stickRadius: 58,
   stickDead: 16,
-} as const
+}
 
 /** Map client coordinates to canvas logical coordinates (handles CSS scaling). */
 export function clientToGameCoords(
@@ -66,11 +76,11 @@ export class TouchInputSystem {
   private canvas: HTMLCanvasElement | null = null
   private readonly canvasW: number
   private readonly canvasH: number
-  private readonly fireZoneH: number
-  private readonly stickCx: number
-  private readonly stickCy: number
-  private readonly stickRadius: number
-  private readonly stickDead: number
+  private fireZoneH: number
+  private stickCx: number
+  private stickCy: number
+  private stickRadius: number
+  private stickDead: number
 
   private stickPointerId: number | null = null
   private readonly firePointerIds = new Set<number>()
@@ -82,7 +92,7 @@ export class TouchInputSystem {
   private boundUp: (e: PointerEvent) => void
   private boundCancel: (e: PointerEvent) => void
 
-  constructor(opts: Partial<typeof TOUCH_DEFAULTS> = {}) {
+  constructor(opts: Partial<TouchLayoutOptions> = {}) {
     const d = { ...TOUCH_DEFAULTS, ...opts }
     this.canvasW = d.canvasW
     this.canvasH = d.canvasH
@@ -96,6 +106,16 @@ export class TouchInputSystem {
     this.boundMove = this.onPointerMove.bind(this)
     this.boundUp = this.onPointerUp.bind(this)
     this.boundCancel = this.onPointerCancel.bind(this)
+  }
+
+  /** Update hit zones without re-attaching listeners (e.g. user moved controls). */
+  applyLayout(opts: Partial<TouchLayoutOptions>): void {
+    const d = { ...TOUCH_DEFAULTS, ...opts }
+    this.fireZoneH = d.fireZoneH
+    this.stickCx = d.stickCx
+    this.stickCy = d.stickCy
+    this.stickRadius = d.stickRadius
+    this.stickDead = d.stickDead
   }
 
   attach(canvas: HTMLCanvasElement): void {
