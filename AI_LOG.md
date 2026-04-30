@@ -133,12 +133,13 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 - **UI mobile (`pointer: coarse`)**: `useTouchUiMode` + `VirtualControlsOverlay` — anello **Move** e striscia **Cast** sovrapposti al canvas (solo a partita avviata, non in pausa); pulsante **Pause** in alto a destra; copy pre-start / pausa dedicati.
 - **`touchUiDetection.ts`**: `readCoarsePointerMode()` per test senza `renderHook`.
 - **Test Vitest:** `TouchInputSystem.test.ts` (mapping, hit zone, merge); `touchUiDetection.test.ts`; ambiente `node` senza DOM reale.
+- **Layout portrait mobile:** `GameScreen` scala il contenitore del canvas con `aspect-ratio` 480/640 e `width: min(100vw − safe area, …)` così il playfield entra in verticale; buffer fisso interno 480×640 (`canvasDimensions.ts`). Viewport HTML `viewport-fit=cover`; `body` con padding safe-area orizzontale; pannello debug DEV scrollabile e a larghezza limitata su schermi stretti.
 
 ---
 
 ## TODO / Roadmap
 
-**Stato repo (ultima verifica codice):** tastiera + touch canvas (`InputSystem`, `TouchInputSystem`, merge in `useGameLoop`). Mancano ancora: audio Web, Supabase, `localStorage` high score, particelle a morte nemici, modalità manuale bypass AI. Il server espone CORS solo verso `http://localhost:5173` (`server/app.ts`) — va esteso per un client in produzione.
+**Stato repo (ultima verifica codice):** tastiera + touch canvas; **schermata di gioco** adattiva in portrait (canvas scalato, safe area). Mancano ancora: audio Web, Supabase, `localStorage` high score, particelle a morte nemici, modalità manuale bypass AI. Il server espone CORS solo verso `http://localhost:5173` (`server/app.ts`) — va esteso per un client in produzione.
 
 - [x] Touch controls per mobile (joystick virtuale canvas + fire strip; tastiera invariata)
 - [ ] Sound effects con Web Audio API (tono fantasy)

@@ -5,13 +5,17 @@
  */
 
 import type { InputState } from './InputSystem'
+import {
+  CANVAS_LOGICAL_HEIGHT,
+  CANVAS_LOGICAL_WIDTH,
+} from '../canvasDimensions'
 
 export const TOUCH_DEFAULTS = {
-  canvasW: 480,
-  canvasH: 640,
+  canvasW: CANVAS_LOGICAL_WIDTH,
+  canvasH: CANVAS_LOGICAL_HEIGHT,
   fireZoneH: 96,
   stickCx: 76,
-  stickCy: 640 - 76,
+  stickCy: CANVAS_LOGICAL_HEIGHT - 76,
   stickRadius: 58,
   stickDead: 16,
 } as const

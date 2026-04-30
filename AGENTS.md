@@ -75,6 +75,7 @@ React → gestisce: MenuScreen, GameScreen layout, HUD (via ref + setInterval), 
 - `InputSystem.ts` — tastiera; `TouchInputSystem.ts` — pointer sul canvas (joystick basso-sinistra + fire sulla striscia bassa). In `useGameLoop` gli snapshot si uniscono con `mergeInputState` (OR).
 - **Modalità UI touch** — `matchMedia('(pointer: coarse)')` (`useTouchUiMode`): se vero, `GameScreen` mostra `VirtualControlsOverlay` (etichette Move/Cast allineate a `TOUCH_DEFAULTS`) e il pulsante **Pause**; il canvas resta il target dei pointer (l’overlay ha `pointer-events: none`).
 - `useGameLoop.ts` — hook React che wrappa GameLoop su canvas ref
+- `GameScreen` — viewport canvas **responsive** (portrait: larghezza schermo − safe area, altezza proporzionale 640/480); buffer di gioco sempre **480×640** (`canvasDimensions.ts`)
 - `useAIWave.ts` — hook React per `POST /api/next-wave`
 
 ---

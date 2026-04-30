@@ -17,7 +17,7 @@ export default function AIDebugPanel({ config, loading, error }: AIDebugPanelPro
   if (!import.meta.env.DEV) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-72 bg-card/95 border border-primary/40 rounded-xl shadow-xl backdrop-blur-sm overflow-hidden text-xs font-mono">
+    <div className="fixed bottom-4 right-4 z-50 w-[min(18rem,calc(100vw-1rem))] max-h-[50dvh] overflow-y-auto bg-card/95 border border-primary/40 rounded-xl shadow-xl backdrop-blur-sm text-xs font-mono mb-[max(0.5rem,env(safe-area-inset-bottom))] mr-[max(0.5rem,env(safe-area-inset-right))]">
 
       {/* Header */}
       <div className="flex items-center gap-2 bg-primary/10 border-b border-primary/30 px-3 py-2">
