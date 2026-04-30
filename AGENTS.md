@@ -3,7 +3,7 @@
 Riassunto operativo per **Health, Wand and Fire** — fantasy arcade shooter con AI director (Claude).
 Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 
-**Aggiornato:** 2026-04-29
+**Aggiornato:** 2026-04-30
 
 ---
 
@@ -41,7 +41,8 @@ Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 - **`@anthropic-ai/sdk`** — model: `claude-sonnet-4-5`, max_tokens: 256
 - **Zod** — validazione body request + response AI
 - **`POST /api/next-wave`**: validazione con `NextWaveRequestSchema.safeParse` (evita mismatch `instanceof ZodError` se esistono più copie di `zod` in `node_modules`)
-- CORS abilitato per `http://localhost:5173`
+- **`VITE_API_BASE_URL`** (facoltativo, build client): se impostato, `useAIWave` chiama `{base}/api/next-wave`; se vuoto, usa `/api/next-wave` (proxy Vite in dev). Obbligatorio in produzione quando il client statico (es. Vercel) e l’API Express sono su host diversi — vedi `client/.env.example`
+- CORS: variabile **`CORS_ORIGINS`** (lista separata da virgole); default `http://localhost:5173`. In produzione includere l’origine del frontend (es. URL Vercel)
 
 ### Shared (`shared/`)
 - **`shared/package.json`** — dipendenza `zod` così `tsc` risolve i moduli quando si typechecka `shared/types.ts` da client o server
@@ -55,11 +56,11 @@ Dettaglio storico: **`AI_LOG.md`**. Stato file: **`git status`**.
 - **Root Directory** del progetto Vercel: `client` — output build: `dist`
 - **`client/vercel.json`**: rewrite catch-all → `index.html` così `/game`, `/gameover` e refresh non danno 404
 - L’API AI va deployata separatamente; in dev il proxy Vite manda `/api` al server su 3001
-- **Produzione:** in `server/app.ts`, CORS è impostato su `http://localhost:5173`. Per un frontend su un altro dominio (es. Vercel) va consentita l’origine reale dell’app (idealmente via variabile d’ambiente), altrimenti il browser bloccherà le richieste a `/api/next-wave`
+- **Produzione:** impostare **`VITE_API_BASE_URL`** sul progetto che fa il build del client (URL dell’API senza slash finale) e **`CORS_ORIGINS`** sul server con l’origine del sito; senza la base URL il browser continuerebbe a chiamare solo l’host statico (rewrite SPA → nessuna API reale)
 
 ### Test (Vitest)
-- **Client:** `npm test` in `client/` — file in `src/game/__tests__/**/*.test.ts` (inclusi `TouchInputSystem`, collisioni, `StatsTracker`, schemi condivisi)
-- **Server:** `npm test` in `server/` — file in `__tests__/**/*.test.ts`; usa `supertest` + `createApp({ getNextWave })` senza chiamare Claude
+- **Client:** `npm test` in `client/` — `src/**/__tests__/**/*.test.ts` (game, hooks es. `nextWaveApiUrl`, schemi condivisi, touch)
+- **Server:** `npm test` in `server/` — `__tests__/**/*.test.ts`; `supertest` + `createApp({ getNextWave })` senza Claude; test su `parseWaveConfigFromModel` (JSON da modello con fence markdown / testo attorno)
 - **CI:** `.github/workflows/ci.yml` esegue test + build su entrambi i workspace (branch `main`)
 
 ---
@@ -125,8 +126,8 @@ React → gestisce: MenuScreen, GameScreen layout, HUD (via ref + setInterval), 
   const style = getComputedStyle(document.body)
   const primary = style.getPropertyValue('--color-primary').trim()
   ```
-- **AIDebugPanel** visibile solo se `import.meta.env.DEV === true`
-- Errori Zod → risposta 400; errori Claude → fallback WaveConfig hardcoded (non crashare)
+- **AIDebugPanel** visibile solo se `import.meta.env.DEV === true`; mostra anche l’URL risolto `POST …/api/next-wave` (`getNextWaveApiUrl`)
+- Errori Zod richiesta → **400**; errori Claude / JSON modello non validabile → **`WaveConfig` di fallback** con **200** (`aiAdapter`); callback `getNextWave` iniettata che lancia ancora → **500**
 - Commit message: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`
 
 ---
@@ -151,7 +152,8 @@ cd server && npm test
 cd client && npm test
 
 # Env
-cp .env.example .env            # aggiungi ANTHROPIC_API_KEY
+cp .env.example .env                       # server: ANTHROPIC_API_KEY, CORS_ORIGINS
+# Client produzione (es. Vercel): VITE_API_BASE_URL → vedi client/.env.example
 ```
 
 ---
@@ -160,6 +162,7 @@ cp .env.example .env            # aggiungi ANTHROPIC_API_KEY
 
 - `shared/types.ts` — fonte di verità per tutti i tipi
 - `server/services/aiAdapter.ts` — system prompt Claude calibrato
+- `server/services/parseWaveConfigFromModel.ts` — estrazione JSON dalla risposta testuale del modello (blocco markdown opzionale, oggetto `{…}` anche se circondato da testo)
 - `client/tailwind.config.ts` — preset SoliDS (non aggiungere colori raw)
 
 ---

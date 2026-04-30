@@ -121,7 +121,7 @@ cd server && npm test
 ```
 
 - **Client:** `src/game/__tests__/**/*.test.ts`, `src/hooks/__tests__/**/*.test.ts` — shared Zod schemas, `StatsTracker`, `CollisionSystem`, touch input (`TouchInputSystem`, `touchControlSettings`), coarse-pointer detection (`touchUiDetection`).
-- **Server:** `server/__tests__/**/*.test.ts` — HTTP contract for `/api/next-wave` and `/health` with a mock `getNextWave` (no API key required).
+- **Server:** `server/__tests__/**/*.test.ts` — HTTP contract for `/api/next-wave` and `/health` with a mock `getNextWave` (no API key required); parsing helpers for Claude text output (`parseWaveConfigFromModel`).
 
 On push and pull requests to `main`, GitHub Actions runs `npm ci`, tests, and production builds for both workspaces.
 
@@ -139,9 +139,11 @@ This repo includes **`client/vercel.json`** with a catch-all rewrite to `/index.
 | **Build Command** | `npm run build` |
 | **Output Directory** | `dist` |
 
-The game still needs a reachable **`POST /api/next-wave`** in production (separate Node host or serverless). In dev, Vite proxies `/api` to port 3001 (`vite.config.ts`).
+**Environment variable for production:** set **`VITE_API_BASE_URL`** to your deployed API origin **without** a trailing slash (example: `https://your-api.onrender.com`). The client then POSTs to `{VITE_API_BASE_URL}/api/next-wave`. If unset, requests use `/api/next-wave` (works in dev with the Vite proxy only — **not** enough when the UI is served from a static host that rewrites everything to `index.html`).
 
-**CORS:** the Express app currently allows **`http://localhost:5173`** only. Before wiring a production build of the client to a deployed API, update CORS in `server/app.ts` (for example, env-driven allowed origins) so the browser can call `/api/next-wave`.
+The game still needs a reachable **`POST /api/next-wave`** on that API host (separate Node deploy or serverless). In dev, Vite proxies `/api` to port 3001 (`vite.config.ts`).
+
+**CORS:** the Express server reads **`CORS_ORIGINS`** (comma-separated list). Default is `http://localhost:5173`. Add your production site origin(s) so the browser can call the API from your deployed client.
 
 ---
 
@@ -195,33 +197,40 @@ UI components (Button, Card, Badge…) come from the **shadcn/ui registry** (`sr
 
 ## 🌍 Environment Variables
 
+### Server (`server/`, copy root `.env.example` → `.env`)
+
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `ANTHROPIC_API_KEY` | Anthropic API key | ✅ |
 | `PORT` | Server port (default: 3001) | ❌ |
+| `CORS_ORIGINS` | Comma-separated allowed browser origins (e.g. `http://localhost:5173,https://your-app.vercel.app`) | ❌ (default: localhost dev client) |
 
----
+### Client build (`client/` — e.g. Vercel project env)
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VITE_API_BASE_URL` | API origin **without** trailing slash; client calls `{base}/api/next-wave`. Omit for local dev (Vite proxy). **Set for production** when the API is not same-origin with the static app. | ❌ locally; ✅ typical production |
 
 ## 🧪 Dev Tools
 
-- **AIDebugPanel**: visible only in `DEV` mode (bottom-right overlay), shows last WaveConfig JSON + AI comment + loading state.
-- **Vite proxy**: `/api` → `http://localhost:3001` (no CORS issues in dev)
+- **AIDebugPanel**: visible only in `DEV` mode (bottom-right overlay), shows resolved `POST` URL, last WaveConfig + AI comment + loading/error state.
+- **Vite proxy**: `/api` → `http://localhost:3001` when `VITE_API_BASE_URL` is unset (no CORS issues in dev)
 
-Invalid `POST /api/next-wave` bodies return **400** with Zod field errors. The route uses `safeParse` so validation works even when multiple copies of the `zod` package are present in `node_modules` (e.g. under `shared/`).
-
----
+Invalid `POST /api/next-wave` bodies return **400** with Zod field errors. The route uses `safeParse` so validation works even when multiple copies of the `zod` package are present in `node_modules` (e.g. under `shared/`). Claude failures or unparseable model text result in a **fallback** `WaveConfig` with HTTP **200** from the adapter (`server/services/aiAdapter.ts`); injected test doubles that throw still yield **500**.
 
 ## 📁 Key Files
 
 | File | Role |
 |------|------|
 | `shared/types.ts` | Zod schemas + TypeScript types (single source of truth) |
-| `server/services/aiAdapter.ts` | Claude API integration |
-| `server/app.ts` | Express app factory (`createApp`) — testable without listening |
+| `server/services/aiAdapter.ts` | Claude API integration + fallback wave |
+| `server/services/parseWaveConfigFromModel.ts` | Parse model text → `WaveConfig` (markdown fences, embedded `{…}`) |
+| `server/app.ts` | Express app factory (`createApp`) — testable without listening; `CORS_ORIGINS` |
 | `server/routes/wave.ts` | `createWaveRouter(getNextWave)` — `POST /api/next-wave` |
 | `client/src/game/GameLoop.ts` | rAF game loop, pure JS |
 | `client/src/game/StatsTracker.ts` | Collects per-wave player stats |
 | `client/src/hooks/useAIWave.ts` | React hook → AI wave fetch |
+| `client/src/hooks/nextWaveApiUrl.ts` | Resolves `POST` URL from `VITE_API_BASE_URL` |
 | `client/src/game/touchControlSettings.ts` | Persisted touch layout + `touchSettingsToInputOpts` for engine/UI |
 | `client/src/ui/overlays/VirtualControlsOverlay.tsx` | Visible Move/Cast hints when `(pointer: coarse)` |
 | `client/src/ui/hud/AIDebugPanel.tsx` | Dev-only AI inspector |

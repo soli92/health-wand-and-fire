@@ -40,7 +40,7 @@ Motivazione: evitare re-render React ogni frame (60fps) — performance critica.
 Zod valida: request body del server, response JSON di Claude, prevenendo runtime crash.
 
 #### 3. Claude fallback hardcoded
-Se Claude risponde con JSON malformato o l'API è down, `aiAdapter.ts` ritorna una `WaveConfig` di fallback.
+Se Claude risponde con JSON non validabile (anche dopo estrazione da markdown / testo attorno), o se l’API Anthropic fallisce, `aiAdapter.ts` ritorna una `WaveConfig` di fallback con risposta **200**.
 Il gioco non si interrompe mai per un errore AI.
 
 #### 4. @soli92/solids: registry shadcn, non import diretto
@@ -170,15 +170,32 @@ Per evitare il problema delle dependency stale di `applyNextWave`, la callback `
 
 ---
 
+### Fase 6 — AI wave: produzione, resilienza parsing, osservabilità dev
+
+**Problema osservato:** su deploy solo frontend (Vercel + rewrite SPA), `fetch('/api/next-wave')` colpisce l’host statico e non il backend Node → HTML / errore rete → fallback client percepito come “AI rotta”. Inoltre Claude a volte risponde con JSON dentro fence markdown o con una riga di testo attorno, e `JSON.parse` sul blocco intero falliva → fallback server anche con API ok.
+
+**Cosa è stato fatto:**
+
+- **`VITE_API_BASE_URL`** — costruzione URL `POST` come `{base}/api/next-wave` quando la variabile è valorizzata al build; in dev resta `/api/next-wave` (proxy Vite → 3001). Documentato in `client/.env.example`.
+- **`resolveNextWaveApiUrl`** (`client/src/hooks/nextWaveApiUrl.ts`) — funzione pura + test Vitest `nextWaveApiUrl.test.ts`.
+- **`parseWaveConfigFromModel.ts`** — rimozione opzionale di blocchi markdown; tentativo di estrazione del primo `{` … ultimo `}` se il parse diretto fallisce; validazione con `WaveConfigSchema`. Test in `server/__tests__/parseWaveConfigFromModel.test.ts`.
+- **`aiAdapter`** — errori Anthropic (chiave assente, rate limit, rete) → `FALLBACK_WAVE` con **200** invece di far propagare 500 (allineato al principio “il gioco non si ferma”).
+- **`CORS_ORIGINS`** — lista separata da virgole in `server/app.ts`; default `http://localhost:5173`.
+- **`AIDebugPanel`** — in DEV mostra anche la riga `POST <url risolto>` per verificare subito dove punta il client.
+
+**File principali:** `client/src/hooks/useAIWave.ts`, `nextWaveApiUrl.ts`, `server/services/aiAdapter.ts`, `parseWaveConfigFromModel.ts`, `.env.example`, `client/.env.example`.
+
+---
+
 ## TODO / Roadmap
 
-**Stato repo (ultima verifica codice):** tastiera + touch canvas; schermata di gioco adattiva in portrait; controlli virtuali configurabili (localStorage) e zoom pagina bloccato su mobile via viewport. Mancano ancora: audio Web, Supabase, `localStorage` high score, particelle a morte nemici, modalità manuale bypass AI. Il server espone CORS solo verso `http://localhost:5173` (`server/app.ts`) — va esteso per un client in produzione.
+**Stato repo (ultima verifica codice):** tastiera + touch canvas; schermata di gioco adattiva in portrait; controlli virtuali configurabili (localStorage) e zoom pagina bloccato su mobile via viewport. **Deploy full-stack:** impostare `VITE_API_BASE_URL` sul build del client e `CORS_ORIGINS` + `ANTHROPIC_API_KEY` sul server. Mancano ancora: audio Web, Supabase, `localStorage` high score, particelle a morte nemici, modalità manuale bypass AI.
 
 - [x] Touch controls per mobile (joystick virtuale canvas + fire strip; tastiera invariata)
 - [ ] Sound effects con Web Audio API (tono fantasy)
 - [ ] Leaderboard con Supabase
 - [x] Deploy client su Vercel — `client/vercel.json` (rewrite SPA → `index.html`); in dashboard Vercel: Root Directory `client`, output `dist`
-- [ ] Deploy server `POST /api/next-wave` (Railway, Render, serverless, ecc.) + segreti / `ANTHROPIC_API_KEY` + **CORS** allineato all’origine del frontend
+- [ ] Deploy server `POST /api/next-wave` (Railway, Render, serverless, ecc.) + `ANTHROPIC_API_KEY` + **`CORS_ORIGINS`** (origine Vercel) + sul progetto frontend **`VITE_API_BASE_URL`** punta all’host API
 - [x] GitHub Actions CI — `npm ci`, test e build su **client e server** (`.github/workflows/ci.yml`, branch `main`)
 - [ ] Modalità difficoltà manuale (bypass AI director)
 - [ ] Animazioni particelle alla morte nemici
